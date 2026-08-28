@@ -787,7 +787,14 @@ namespace JinChanChanTool.Services
                 //kmBox.EncLeft(false);
 
 
-                MouseControlTool.SetMousePosition(X, Y);
+                if (!MouseControlTool.TrySetMousePosition(
+                        X,
+                        Y,
+                        _iappConfigService.CurrentConfig,
+                        out string moveError))
+                {
+                    ThrowMouseOperationFailed(moveError);
+                }
                 await Task.Delay(_iappConfigService.CurrentConfig.DelayAfterOperation);
                 await ClickOneTime();
 
@@ -1040,7 +1047,14 @@ namespace JinChanChanTool.Services
                         //await Task.Delay(_iappConfigService.CurrentConfig.DelayAfterOperation);
 
                         //设置鼠标位置
-                        MouseControlTool.SetMousePosition(randomX, randomY);
+                        if (!MouseControlTool.TrySetMousePosition(
+                                randomX,
+                                randomY,
+                                _iappConfigService.CurrentConfig,
+                                out string moveError))
+                        {
+                            ThrowMouseOperationFailed(moveError);
+                        }
                         await Task.Delay(_iappConfigService.CurrentConfig.DelayAfterOperation);
                         await ClickOneTime();
                         await Task.Delay(_iappConfigService.CurrentConfig.DelayAfterOperation);
@@ -1057,13 +1071,34 @@ namespace JinChanChanTool.Services
         private async Task ClickOneTime()
         {
             MouseHookTool.IncrementProgramClickCount(); // 增加计数
-            MouseControlTool.MakeMouseLeftButtonDown();
-            MouseControlTool.MakeMouseLeftButtonUp();
-            // 延迟后减少计数器
-            await Task.Delay(1);
+            try
+            {
+                if (!MouseControlTool.TryClickLeftButton(
+                        _iappConfigService.CurrentConfig,
+                        out string clickError))
+                {
+                    ThrowMouseOperationFailed(clickError);
+                }
 
-            MouseHookTool.DecrementProgramClickCount(); // 减少计数
+                int hookDelay = _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu
+                    ? 10
+                    : 1;
+                await Task.Delay(hookDelay);
+            }
+            finally
+            {
+                MouseHookTool.DecrementProgramClickCount(); // 减少计数
+            }
 
+        }
+
+        private static void ThrowMouseOperationFailed(string error)
+        {
+            string message = $"鼠标操作失败：{error}";
+            LogTool.Log(message);
+            Debug.WriteLine(message);
+            OutputForm.Instance.WriteLineOutputMessage(message);
+            throw new InvalidOperationException(message);
         }
 
         /// <summary>

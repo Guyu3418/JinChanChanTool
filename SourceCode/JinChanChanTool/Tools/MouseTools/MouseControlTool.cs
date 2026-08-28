@@ -4,62 +4,95 @@ namespace JinChanChanTool.Tools.MouseTools
 {
     public static class MouseControlTool
     {
-        #region 添加鼠标按键声明
-        public const int MOUSEEVENTF_LEFTDOWN = 0x02; // 鼠标左键按下
-        public const int MOUSEEVENTF_LEFTUP = 0x04;   // 鼠标左键抬起
-        [DllImport("user32.dll")]
-        static extern bool SetCursorPos(int X, int Y);
+        private const int MouseEventLeftDown = 0x02;
+        private const int MouseEventLeftUp = 0x04;
+        private static readonly MakcuMouseDevice MakcuDevice = new();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetCursorPos(int x, int y);
 
         [DllImport("user32.dll")]
-        #endregion
-        static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
-        
-        /// <summary>
-        /// 设置鼠标位置并单击左键
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="screens"></param>
-        /// <param name="ID"></param>
-        public static void SetMousePositionAndClickLeftButton(int x, int y)
-        {            
-            SetCursorPos(x, y);
+        private static extern void mouse_event(int flags, int dx, int dy, int buttons, int extraInfo);
 
-            // 模拟鼠标左键按下
-            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+        public static bool IsMakcuConnected => MakcuDevice.IsConnected;
 
-            // 模拟鼠标左键抬起
-            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-        }        
-
-        /// <summary>
-        /// 设置鼠标位置
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="screens"></param>
-        /// <param name="ID"></param>
-        public static void SetMousePosition(int x, int y)
-        {                       
-            SetCursorPos(x, y);
+        public static string[] GetMakcuPortNames()
+        {
+            return MakcuMouseDevice.GetPortNames();
         }
 
-        /// <summary>
-        /// 鼠标左键按下
-        /// </summary>
-        public  static void MakeMouseLeftButtonDown()
+        public static bool TryConnectMakcu(string portName, int baudRate, out string error)
         {
-            // 模拟鼠标左键按下
-            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+            MakcuDevice.Disconnect();
+            return MakcuDevice.TryConnect(portName, baudRate, out error);
         }
 
-        /// <summary>
-        /// 鼠标左键抬起
-        /// </summary>
-        public static void MakeMouseLeftButtonUp()
+        public static void DisconnectMakcu()
         {
-            // 模拟鼠标左键抬起
-            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-        }       
+            MakcuDevice.Disconnect();
+        }
+
+        public static bool TrySetMousePosition(
+            int x,
+            int y,
+            DataClass.ManualSettings settings,
+            out string error)
+        {
+            error = string.Empty;
+            if (settings.MouseControlMode == DataClass.MouseControlMode.WinApi)
+            {
+                if (SetCursorPos(x, y))
+                {
+                    return true;
+                }
+
+                error = $"WinAPI 设置鼠标位置失败：{new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()).Message}";
+                return false;
+            }
+
+            if (!EnsureMakcuConnected(settings, out error))
+            {
+                return false;
+            }
+
+            Point currentPosition = Cursor.Position;
+            return MakcuDevice.TryMove(x - currentPosition.X, y - currentPosition.Y, out error);
+        }
+
+        public static bool TryClickLeftButton(DataClass.ManualSettings settings, out string error)
+        {
+            error = string.Empty;
+            if (settings.MouseControlMode == DataClass.MouseControlMode.WinApi)
+            {
+                mouse_event(MouseEventLeftDown, 0, 0, 0, 0);
+                mouse_event(MouseEventLeftUp, 0, 0, 0, 0);
+                return true;
+            }
+
+            return EnsureMakcuConnected(settings, out error) &&
+                   MakcuDevice.TryLeftClick(out error);
+        }
+
+        public static bool TryMoveMakcu(
+            int deltaX,
+            int deltaY,
+            DataClass.ManualSettings settings,
+            out string error)
+        {
+            error = string.Empty;
+            if (settings.MouseControlMode != DataClass.MouseControlMode.Makcu)
+            {
+                error = "请先将鼠标移动方式切换为 Makcu。";
+                return false;
+            }
+
+            return EnsureMakcuConnected(settings, out error) &&
+                   MakcuDevice.TryMove(deltaX, deltaY, out error);
+        }
+
+        private static bool EnsureMakcuConnected(DataClass.ManualSettings settings, out string error)
+        {
+            return MakcuDevice.TryConnect(settings.MakcuPortName, settings.MakcuBaudRate, out error);
+        }
     }
 }

@@ -21,6 +21,7 @@ namespace JinChanChanTool
             //创建并加载用户应用设置服务
             IManualSettingsService _iManualSettingsService = new ManualSettingsService();
             _iManualSettingsService.Load();
+            Application.ApplicationExit += (_, _) => Tools.MouseTools.MouseControlTool.DisconnectMakcu();
 
             // 最大选择英雄数量（从配置读取）
             int maxCountOfHero = _iManualSettingsService.CurrentConfig.LineUpCapacity;

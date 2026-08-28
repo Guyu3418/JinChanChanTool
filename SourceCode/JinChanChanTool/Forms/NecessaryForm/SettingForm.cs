@@ -37,6 +37,27 @@ namespace JinChanChanTool
         private Screen targetScreen;//目标显示器
         private Screen[] screens;//显示器数组
 
+        private TabPage tabPage_鼠标设备 = null!;
+        private Panel panel_鼠标设备 = null!;
+        private Label label_鼠标移动方式 = null!;
+        private Label label_鼠标移动方式描述 = null!;
+        private Label label_Makcu串口 = null!;
+        private Label label_Makcu串口描述 = null!;
+        private Label label_Makcu波特率 = null!;
+        private Label label_Makcu波特率描述 = null!;
+        private Label label_Makcu连接状态 = null!;
+        private Label label_Makcu连接状态描述 = null!;
+        private Label label_Makcu测试移动 = null!;
+        private Label label_Makcu测试移动描述 = null!;
+        private ComboBox comboBox_鼠标移动方式 = null!;
+        private ComboBox comboBox_Makcu串口 = null!;
+        private ComboBox comboBox_Makcu波特率 = null!;
+        private RoundedButton roundedButton_刷新Makcu串口 = null!;
+        private RoundedButton roundedButton_测试Makcu连接 = null!;
+        private RoundedButton roundedButton_测试Makcu移动 = null!;
+        private readonly List<Panel> mouseDeviceSeparators = new();
+        private bool isUpdatingMouseDeviceControls;
+
         public SettingForm(IManualSettingsService iAppConfigService, IRecommendedLineUpService iRecommendedLineUpService, ILocalizationService iLocalizationService)
         {
             InitializeComponent();
@@ -57,6 +78,9 @@ namespace JinChanChanTool
 
             //初始化本地化服务实例
             _iLocalizationService = iLocalizationService;
+
+            //初始化鼠标设备设置页
+            InitializeMouseDeviceSettings();
 
             //为组件绑定事件
             Initialize_AllComponents();
@@ -103,6 +127,11 @@ namespace JinChanChanTool
                 }
 
             }
+            if (_iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.WinApi)
+            {
+                MouseControlTool.DisconnectMakcu();
+            }
+
             GlobalHotkeyTool.Enabled = true;
             base.OnFormClosing(e);
         }
@@ -121,6 +150,391 @@ namespace JinChanChanTool
                 // 将显示器的序号和设备名称添加到显示器下拉框
                 comboBox_选择显示器.Items.Add($"{i + 1} - {screens[i].DeviceName}");
             }
+        }
+
+        private void InitializeMouseDeviceSettings()
+        {
+            tabPage_鼠标设备 = new TabPage
+            {
+                Name = "tabPage_鼠标设备",
+                Padding = new Padding(3),
+                Text = "鼠标设备",
+                UseVisualStyleBackColor = true
+            };
+            panel_鼠标设备 = new Panel
+            {
+                Name = "panel_鼠标设备",
+                AutoScroll = true,
+                BackColor = Color.White,
+                Dock = DockStyle.Fill
+            };
+
+            label_鼠标移动方式 = CreateMouseSettingLabel("label_鼠标移动方式", 5, true);
+            label_鼠标移动方式描述 = CreateMouseSettingLabel("label_鼠标移动方式描述", 23, false);
+            label_Makcu串口 = CreateMouseSettingLabel("label_Makcu串口", 68, true);
+            label_Makcu串口描述 = CreateMouseSettingLabel("label_Makcu串口描述", 86, false);
+            label_Makcu波特率 = CreateMouseSettingLabel("label_Makcu波特率", 131, true);
+            label_Makcu波特率描述 = CreateMouseSettingLabel("label_Makcu波特率描述", 149, false);
+            label_Makcu连接状态 = CreateMouseSettingLabel("label_Makcu连接状态", 194, true);
+            label_Makcu连接状态描述 = CreateMouseSettingLabel("label_Makcu连接状态描述", 212, false);
+            label_Makcu测试移动 = CreateMouseSettingLabel("label_Makcu测试移动", 257, true);
+            label_Makcu测试移动描述 = CreateMouseSettingLabel("label_Makcu测试移动描述", 275, false);
+
+            comboBox_鼠标移动方式 = CreateMouseSettingComboBox("comboBox_鼠标移动方式", 815, 19, 140);
+            comboBox_鼠标移动方式.Items.AddRange(new object[] { "WinAPI", "Makcu" });
+
+            comboBox_Makcu串口 = CreateMouseSettingComboBox("comboBox_Makcu串口", 690, 82, 150);
+            comboBox_Makcu波特率 = CreateMouseSettingComboBox("comboBox_Makcu波特率", 815, 145, 140);
+            comboBox_Makcu波特率.Items.AddRange(new object[] { 115200, 4000000 });
+
+            roundedButton_刷新Makcu串口 = CreateMouseActionButton(
+                "roundedButton_刷新Makcu串口",
+                new Point(850, 81),
+                new Size(105, 25));
+            roundedButton_测试Makcu连接 = CreateMouseActionButton(
+                "roundedButton_测试Makcu连接",
+                new Point(815, 207),
+                new Size(140, 25));
+            roundedButton_测试Makcu移动 = CreateMouseActionButton(
+                "roundedButton_测试Makcu移动",
+                new Point(815, 270),
+                new Size(140, 25));
+
+            mouseDeviceSeparators.AddRange(new[]
+            {
+                CreateMouseSettingSeparator(62),
+                CreateMouseSettingSeparator(125),
+                CreateMouseSettingSeparator(188),
+                CreateMouseSettingSeparator(251),
+                CreateMouseSettingSeparator(314)
+            });
+
+            panel_鼠标设备.Controls.AddRange(new Control[]
+            {
+                label_鼠标移动方式,
+                label_鼠标移动方式描述,
+                label_Makcu串口,
+                label_Makcu串口描述,
+                label_Makcu波特率,
+                label_Makcu波特率描述,
+                label_Makcu连接状态,
+                label_Makcu连接状态描述,
+                label_Makcu测试移动,
+                label_Makcu测试移动描述,
+                comboBox_鼠标移动方式,
+                comboBox_Makcu串口,
+                comboBox_Makcu波特率,
+                roundedButton_刷新Makcu串口,
+                roundedButton_测试Makcu连接,
+                roundedButton_测试Makcu移动
+            });
+            panel_鼠标设备.Controls.AddRange(mouseDeviceSeparators.ToArray());
+            tabPage_鼠标设备.Controls.Add(panel_鼠标设备);
+
+            int developerTabIndex = tabControl_设置.TabPages.IndexOf(tabPage_开发者选项);
+            tabControl_设置.TabPages.Insert(developerTabIndex, tabPage_鼠标设备);
+
+            comboBox_鼠标移动方式.SelectedIndexChanged += comboBox_鼠标移动方式_SelectedIndexChanged;
+            comboBox_Makcu串口.SelectedIndexChanged += comboBox_Makcu串口_SelectedIndexChanged;
+            comboBox_Makcu串口.DropDown += (_, _) => RefreshMakcuPorts();
+            comboBox_Makcu波特率.SelectedIndexChanged += comboBox_Makcu波特率_SelectedIndexChanged;
+            roundedButton_刷新Makcu串口.Click += (_, _) => RefreshMakcuPorts();
+            roundedButton_测试Makcu连接.Click += roundedButton_测试Makcu连接_Click;
+            roundedButton_测试Makcu移动.Click += roundedButton_测试Makcu移动_Click;
+            panel_鼠标设备.Resize += (_, _) => LayoutMouseDeviceSettings();
+
+            RefreshMakcuPorts();
+            LayoutMouseDeviceSettings();
+        }
+
+        private static Label CreateMouseSettingLabel(string name, int y, bool isTitle)
+        {
+            return new Label
+            {
+                Name = name,
+                AutoSize = true,
+                Font = new Font(
+                    "Microsoft YaHei UI",
+                    9F,
+                    isTitle ? FontStyle.Bold : FontStyle.Regular,
+                    GraphicsUnit.Point,
+                    134),
+                ForeColor = isTitle ? SystemColors.ControlText : Color.FromArgb(133, 133, 133),
+                Location = new Point(5, y),
+                MaximumSize = new Size(660, isTitle ? 17 : 34)
+            };
+        }
+
+        private static ComboBox CreateMouseSettingComboBox(string name, int x, int y, int width)
+        {
+            return new ComboBox
+            {
+                Name = name,
+                Anchor = AnchorStyles.Top,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                FormattingEnabled = true,
+                Location = new Point(x, y),
+                Size = new Size(width, 25),
+                TabStop = false
+            };
+        }
+
+        private static RoundedButton CreateMouseActionButton(string name, Point location, Size size)
+        {
+            return new RoundedButton
+            {
+                Name = name,
+                Anchor = AnchorStyles.Top,
+                BorderColor = SystemColors.ScrollBar,
+                BorderWidth = 1,
+                ButtonColor = Color.White,
+                CornerRadius = 1,
+                DisabledColor = Color.FromArgb(160, 160, 160),
+                HoverColor = Color.FromArgb(232, 232, 232),
+                Location = location,
+                PressedColor = Color.FromArgb(222, 222, 222),
+                Size = size,
+                TextColor = Color.Black,
+                TextFont = new Font("Microsoft YaHei UI", 9F)
+            };
+        }
+
+        private static Panel CreateMouseSettingSeparator(int y)
+        {
+            return new Panel
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Left,
+                BackColor = Color.Silver,
+                Location = new Point(5, y),
+                Margin = new Padding(0),
+                Size = new Size(950, 1)
+            };
+        }
+
+        private void LayoutMouseDeviceSettings()
+        {
+            int right = Math.Max(320, panel_鼠标设备.ClientSize.Width - 5);
+
+            comboBox_鼠标移动方式.Left = right - comboBox_鼠标移动方式.Width;
+            roundedButton_刷新Makcu串口.Left = right - roundedButton_刷新Makcu串口.Width;
+            comboBox_Makcu串口.Left = roundedButton_刷新Makcu串口.Left - 10 - comboBox_Makcu串口.Width;
+            comboBox_Makcu波特率.Left = right - comboBox_Makcu波特率.Width;
+            roundedButton_测试Makcu连接.Left = right - roundedButton_测试Makcu连接.Width;
+            roundedButton_测试Makcu移动.Left = right - roundedButton_测试Makcu移动.Width;
+
+            foreach (Panel separator in mouseDeviceSeparators)
+            {
+                separator.Width = Math.Max(0, panel_鼠标设备.ClientSize.Width - 10);
+            }
+
+            label_鼠标移动方式描述.MaximumSize = new Size(
+                Math.Max(200, comboBox_鼠标移动方式.Left - 15),
+                34);
+            label_Makcu串口描述.MaximumSize = new Size(
+                Math.Max(200, comboBox_Makcu串口.Left - 15),
+                34);
+            label_Makcu波特率描述.MaximumSize = new Size(
+                Math.Max(200, comboBox_Makcu波特率.Left - 15),
+                34);
+            label_Makcu连接状态描述.MaximumSize = new Size(
+                Math.Max(200, roundedButton_测试Makcu连接.Left - 15),
+                34);
+            label_Makcu测试移动描述.MaximumSize = new Size(
+                Math.Max(200, roundedButton_测试Makcu移动.Left - 15),
+                34);
+        }
+
+        private void UpdateMouseDeviceControls()
+        {
+            isUpdatingMouseDeviceControls = true;
+            try
+            {
+                comboBox_鼠标移动方式.SelectedIndex =
+                    _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu ? 1 : 0;
+
+                RefreshMakcuPorts();
+                int baudRate = _iappConfigService.CurrentConfig.MakcuBaudRate;
+                if (!comboBox_Makcu波特率.Items.Contains(baudRate))
+                {
+                    comboBox_Makcu波特率.Items.Add(baudRate);
+                }
+                comboBox_Makcu波特率.SelectedItem = baudRate;
+            }
+            finally
+            {
+                isUpdatingMouseDeviceControls = false;
+            }
+
+            UpdateMakcuControlState();
+        }
+
+        private void RefreshMakcuPorts()
+        {
+            string configuredPort = _iappConfigService?.CurrentConfig.MakcuPortName ?? string.Empty;
+            bool previousUpdatingState = isUpdatingMouseDeviceControls;
+            isUpdatingMouseDeviceControls = true;
+            try
+            {
+                string[] portNames = MouseControlTool.GetMakcuPortNames();
+                comboBox_Makcu串口.Items.Clear();
+                comboBox_Makcu串口.Items.AddRange(portNames);
+
+                if (!string.IsNullOrWhiteSpace(configuredPort) &&
+                    !comboBox_Makcu串口.Items.Contains(configuredPort))
+                {
+                    comboBox_Makcu串口.Items.Add(configuredPort);
+                }
+
+                comboBox_Makcu串口.SelectedItem = configuredPort;
+                if (string.IsNullOrWhiteSpace(configuredPort))
+                {
+                    comboBox_Makcu串口.SelectedIndex = -1;
+                }
+            }
+            catch (Exception ex)
+            {
+                SetMakcuStatus(ex.Message, Color.Firebrick);
+            }
+            finally
+            {
+                isUpdatingMouseDeviceControls = previousUpdatingState;
+            }
+        }
+
+        private void comboBox_鼠标移动方式_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (isUpdatingMouseDeviceControls || comboBox_鼠标移动方式.SelectedIndex < 0)
+            {
+                return;
+            }
+
+            _iappConfigService.CurrentConfig.MouseControlMode = comboBox_鼠标移动方式.SelectedIndex == 1
+                ? MouseControlMode.Makcu
+                : MouseControlMode.WinApi;
+
+            if (_iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.WinApi)
+            {
+                MouseControlTool.DisconnectMakcu();
+            }
+
+            UpdateMakcuControlState();
+        }
+
+        private void comboBox_Makcu串口_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (isUpdatingMouseDeviceControls)
+            {
+                return;
+            }
+
+            _iappConfigService.CurrentConfig.MakcuPortName = comboBox_Makcu串口.SelectedItem?.ToString() ?? string.Empty;
+            MouseControlTool.DisconnectMakcu();
+            SetMakcuStatus(_iLocalizationService.Get("SettingForm.Status.Makcu未连接"), Color.DimGray);
+        }
+
+        private void comboBox_Makcu波特率_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (isUpdatingMouseDeviceControls || comboBox_Makcu波特率.SelectedItem is not int baudRate)
+            {
+                return;
+            }
+
+            _iappConfigService.CurrentConfig.MakcuBaudRate = baudRate;
+            MouseControlTool.DisconnectMakcu();
+            SetMakcuStatus(_iLocalizationService.Get("SettingForm.Status.Makcu未连接"), Color.DimGray);
+        }
+
+        private void roundedButton_测试Makcu连接_Click(object? sender, EventArgs e)
+        {
+            UseWaitCursor = true;
+            roundedButton_测试Makcu连接.Enabled = false;
+            try
+            {
+                if (MouseControlTool.TryConnectMakcu(
+                        _iappConfigService.CurrentConfig.MakcuPortName,
+                        _iappConfigService.CurrentConfig.MakcuBaudRate,
+                        out string error))
+                {
+                    SetMakcuStatus(_iLocalizationService.Get("SettingForm.Status.Makcu已连接"), Color.ForestGreen);
+                }
+                else
+                {
+                    SetMakcuStatus(error, Color.Firebrick);
+                    MessageBox.Show(
+                        error,
+                        _iLocalizationService.Get("SettingForm.MsgTitle.Makcu连接失败"),
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            }
+            finally
+            {
+                roundedButton_测试Makcu连接.Enabled = true;
+                UseWaitCursor = false;
+            }
+        }
+
+        private void roundedButton_测试Makcu移动_Click(object? sender, EventArgs e)
+        {
+            UseWaitCursor = true;
+            roundedButton_测试Makcu移动.Enabled = false;
+            try
+            {
+                if (MouseControlTool.TryMoveMakcu(
+                        30,
+                        30,
+                        _iappConfigService.CurrentConfig,
+                        out string error))
+                {
+                    SetMakcuStatus(
+                        _iLocalizationService.Get("SettingForm.Status.Makcu测试移动成功"),
+                        Color.ForestGreen);
+                }
+                else
+                {
+                    SetMakcuStatus(error, Color.Firebrick);
+                    MessageBox.Show(
+                        error,
+                        _iLocalizationService.Get("SettingForm.MsgTitle.Makcu测试移动失败"),
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            }
+            finally
+            {
+                roundedButton_测试Makcu移动.Enabled =
+                    _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu;
+                UseWaitCursor = false;
+            }
+        }
+
+        private void UpdateMakcuControlState()
+        {
+            bool useMakcu = _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu;
+            comboBox_Makcu串口.Enabled = useMakcu;
+            comboBox_Makcu波特率.Enabled = useMakcu;
+            roundedButton_刷新Makcu串口.Enabled = useMakcu;
+            roundedButton_测试Makcu连接.Enabled = useMakcu;
+            roundedButton_测试Makcu移动.Enabled = useMakcu;
+
+            if (!useMakcu)
+            {
+                SetMakcuStatus(_iLocalizationService.Get("SettingForm.Status.WinApi无需连接"), Color.DimGray);
+            }
+            else if (MouseControlTool.IsMakcuConnected)
+            {
+                SetMakcuStatus(_iLocalizationService.Get("SettingForm.Status.Makcu已连接"), Color.ForestGreen);
+            }
+            else
+            {
+                SetMakcuStatus(_iLocalizationService.Get("SettingForm.Status.Makcu未连接"), Color.DimGray);
+            }
+        }
+
+        private void SetMakcuStatus(string text, Color color)
+        {
+            label_Makcu连接状态描述.Text = text;
+            label_Makcu连接状态描述.ForeColor = color;
         }
 
         /// <summary>
@@ -212,6 +626,7 @@ namespace JinChanChanTool
             button_高亮渐变色1.BackColor = _iappConfigService.CurrentConfig.HighlightColor1;
             button_高亮渐变色2.BackColor = _iappConfigService.CurrentConfig.HighlightColor2;
             numericUpDown_阵容容量.Value = _iappConfigService.CurrentConfig.LineUpCapacity;
+            UpdateMouseDeviceControls();
         }
 
 
@@ -2039,6 +2454,7 @@ namespace JinChanChanTool
             tabPage_窗口.Text = _iLocalizationService.Get("SettingForm.Tab.窗口");
             tabPage_大数据推荐.Text = _iLocalizationService.Get("SettingForm.Tab.大数据推荐");
             tabPage_开发者选项.Text = _iLocalizationService.Get("SettingForm.Tab.开发者选项");
+            tabPage_鼠标设备.Text = _iLocalizationService.Get("SettingForm.Tab.鼠标设备");
             tabPage_功能_常规.Text = _iLocalizationService.Get("SettingForm.Tab.功能.常规");
             tabPage_功能_自动拿牌.Text = _iLocalizationService.Get("SettingForm.Tab.功能.自动拿牌");
             tabPage_功能_自动刷新商店.Text = _iLocalizationService.Get("SettingForm.Tab.功能.自动刷新商店");
@@ -2056,6 +2472,30 @@ namespace JinChanChanTool
             tabPage_功能_自动刷新商店_刷新方式.Text = _iLocalizationService.Get("SettingForm.Tab.功能.自动刷新商店.刷新方式");
             tabPage_功能_自动刷新商店_异常处理.Text = _iLocalizationService.Get("SettingForm.Tab.功能.自动刷新商店.异常处理");
             tabPage_功能_自动刷新商店_延迟.Text = _iLocalizationService.Get("SettingForm.Tab.功能.自动刷新商店.延迟");
+
+            // 鼠标设备选项卡
+            label_鼠标移动方式.Text = _iLocalizationService.Get("SettingForm.Label.鼠标移动方式");
+            label_鼠标移动方式描述.Text = _iLocalizationService.Get("SettingForm.Label.鼠标移动方式描述");
+            label_Makcu串口.Text = _iLocalizationService.Get("SettingForm.Label.Makcu串口");
+            label_Makcu串口描述.Text = _iLocalizationService.Get("SettingForm.Label.Makcu串口描述");
+            label_Makcu波特率.Text = _iLocalizationService.Get("SettingForm.Label.Makcu波特率");
+            label_Makcu波特率描述.Text = _iLocalizationService.Get("SettingForm.Label.Makcu波特率描述");
+            label_Makcu连接状态.Text = _iLocalizationService.Get("SettingForm.Label.Makcu连接状态");
+            label_Makcu测试移动.Text = _iLocalizationService.Get("SettingForm.Label.Makcu测试移动");
+            label_Makcu测试移动描述.Text = _iLocalizationService.Get("SettingForm.Label.Makcu测试移动描述");
+            roundedButton_刷新Makcu串口.Text = _iLocalizationService.Get("SettingForm.Button.刷新串口");
+            roundedButton_测试Makcu连接.Text = _iLocalizationService.Get("SettingForm.Button.测试Makcu连接");
+            roundedButton_测试Makcu移动.Text = _iLocalizationService.Get("SettingForm.Button.测试Makcu移动");
+
+            isUpdatingMouseDeviceControls = true;
+            comboBox_鼠标移动方式.Items.Clear();
+            comboBox_鼠标移动方式.Items.Add(_iLocalizationService.Get("SettingForm.Option.WinApi"));
+            comboBox_鼠标移动方式.Items.Add(_iLocalizationService.Get("SettingForm.Option.Makcu"));
+            comboBox_鼠标移动方式.SelectedIndex =
+                _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu ? 1 : 0;
+            isUpdatingMouseDeviceControls = false;
+            UpdateMakcuControlState();
+            LayoutMouseDeviceSettings();
 
             // 常规选项卡
             label_界面语言.Text = _iLocalizationService.Get("SettingForm.Label.界面语言");

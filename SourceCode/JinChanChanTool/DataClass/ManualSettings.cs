@@ -3,6 +3,12 @@
     /// <summary>
     /// 手动设置数据类。
     /// </summary>
+    public enum MouseControlMode
+    {
+        WinApi = 0,
+        Makcu = 1
+    }
+
     public class ManualSettings : ICloneable, IEquatable<ManualSettings>
     {
         /// <summary>
@@ -119,6 +125,21 @@
         /// 是否启用用户高优先级模式（该模式下程序会尽可能的减少与用户的鼠标争夺）
         /// </summary>
         public bool IsHighUserPriority { get; set; }
+
+        /// <summary>
+        /// 鼠标移动与点击使用的输入设备。
+        /// </summary>
+        public MouseControlMode MouseControlMode { get; set; }
+
+        /// <summary>
+        /// Makcu 设备所在的串口名称。
+        /// </summary>
+        public string MakcuPortName { get; set; }
+
+        /// <summary>
+        /// Makcu 串口波特率。
+        /// </summary>
+        public int MakcuBaudRate { get; set; }
 
         /// <summary>
         /// 是否自动停止购买英雄(购买英雄失败一定次数后自动停止购买英雄)
@@ -383,6 +404,9 @@
             HighLightRectangle_5 = new Rectangle(0, 0, 10, 10);
             IsUseHightLightPrompt = false;
             IsHighUserPriority = true;
+            MouseControlMode = MouseControlMode.WinApi;
+            MakcuPortName = "";
+            MakcuBaudRate = 115200;
             IsAutomaticStopHeroPurchase = true;
             IsAutomaticStopRefreshStore = true;
             IsMouseHeroPurchase = true;
@@ -464,6 +488,9 @@
                 HighLightRectangle_5 = this.HighLightRectangle_5,
                 IsUseHightLightPrompt = this.IsUseHightLightPrompt,
                 IsHighUserPriority = this.IsHighUserPriority,
+                MouseControlMode = this.MouseControlMode,
+                MakcuPortName = this.MakcuPortName,
+                MakcuBaudRate = this.MakcuBaudRate,
                 IsAutomaticStopHeroPurchase = this.IsAutomaticStopHeroPurchase,
                 IsAutomaticStopRefreshStore = this.IsAutomaticStopRefreshStore,
                 IsMouseHeroPurchase = this.IsMouseHeroPurchase,
@@ -547,6 +574,9 @@
                    HighLightRectangle_5 == other.HighLightRectangle_5 &&
                    IsUseHightLightPrompt == other.IsUseHightLightPrompt &&
                    IsHighUserPriority == other.IsHighUserPriority &&
+                   MouseControlMode == other.MouseControlMode &&
+                   MakcuPortName == other.MakcuPortName &&
+                   MakcuBaudRate == other.MakcuBaudRate &&
                    IsAutomaticStopHeroPurchase == other.IsAutomaticStopHeroPurchase &&
                    IsAutomaticStopRefreshStore == other.IsAutomaticStopRefreshStore &&
                    IsMouseHeroPurchase == other.IsMouseHeroPurchase &&
