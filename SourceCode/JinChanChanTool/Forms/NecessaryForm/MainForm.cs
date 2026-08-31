@@ -141,6 +141,16 @@ namespace JinChanChanTool
         private const int SubLineUpButtonPanelHeight = 25;
 
         /// <summary>
+        /// 子阵容分支按钮宽度（96 DPI 逻辑像素），沿用原始固定分期按钮的宽度。
+        /// </summary>
+        private const int SubLineUpButtonWidth = 75;
+
+        /// <summary>
+        /// 新增子阵容按钮宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int AddSubLineUpButtonWidth = 28;
+
+        /// <summary>
         /// 当前分支玩法说明区的顶部位置（96 DPI 逻辑像素）。
         /// </summary>
         private const int SubLineUpDescriptionTop = 29;
@@ -174,6 +184,11 @@ namespace JinChanChanTool
         /// 主窗口客户区的固定高度（96 DPI 逻辑像素）。
         /// </summary>
         private const int MainFormClientHeight = 719;
+
+        /// <summary>
+        /// 玩法说明文字颜色，和设置页说明文字保持一致。
+        /// </summary>
+        private static readonly Color SubLineUpDescriptionColor = Color.FromArgb(133, 133, 133);
 
         // 分支按钮、玩法说明和右键菜单在运行时创建，以支持用户自定义任意分期名称和玩法说明。
         private FlowLayoutPanel _subLineUpButtonPanel;
@@ -1680,6 +1695,7 @@ namespace JinChanChanTool
                 AutoEllipsis = true,
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
+                ForeColor = SubLineUpDescriptionColor,
                 Location = new Point(
                     LogicalToDeviceUnits(SubLineUpContentLeft),
                     LogicalToDeviceUnits(SubLineUpDescriptionTop)),
@@ -1693,9 +1709,15 @@ namespace JinChanChanTool
 
             _addSubLineUpButton = new Button
             {
+                // 新增分支按钮与原始分期按钮保持相同的无边框扁平样式。
+                FlatAppearance =
+                {
+                    BorderColor = Color.White,
+                    BorderSize = 0
+                },
                 FlatStyle = FlatStyle.Flat,
                 Margin = new Padding(0),
-                Size = LogicalToDeviceUnits(new Size(28, 25)),
+                Size = LogicalToDeviceUnits(new Size(AddSubLineUpButtonWidth, SubLineUpButtonPanelHeight)),
                 Text = "+",
                 UseVisualStyleBackColor = true
             };
@@ -1773,13 +1795,7 @@ namespace JinChanChanTool
 
             UpdateSubLineUpDescription(subLineUps, selectedIndex);
 
-            bool isSubLineUpLimitReached = subLineUps.Count >= LineUp.MaxSubLineUpCount;
-            _addSubLineUpButton.Enabled = !isSubLineUpLimitReached;
-            _subLineUpToolTip.SetToolTip(
-                _addSubLineUpButton,
-                isSubLineUpLimitReached
-                    ? _iLocalizationService.Get("MainForm.ToolTip.分支数量已满")
-                    : string.Empty);
+            UpdateAddSubLineUpButtonVisibility(subLineUps.Count);
         }
 
         /// <summary>
@@ -1823,28 +1839,56 @@ namespace JinChanChanTool
 
                 for (int i = 0; i < subLineUpCount; i++)
                 {
+                    // 动态分支按钮复用原始固定分期按钮的无边框扁平样式。
                     Button button = new Button
                     {
                         AutoEllipsis = true,
                         ContextMenuStrip = _subLineUpContextMenu,
+                        FlatAppearance =
+                        {
+                            BorderColor = Color.White,
+                            BorderSize = 0
+                        },
                         FlatStyle = FlatStyle.Flat,
                         Margin = new Padding(0),
-                        Size = LogicalToDeviceUnits(new Size(56, 25)),
+                        Size = LogicalToDeviceUnits(new Size(SubLineUpButtonWidth, SubLineUpButtonPanelHeight)),
                         TabStop = false,
                         Tag = i,
-                        UseVisualStyleBackColor = false
+                        UseVisualStyleBackColor = true
                     };
                     button.Click += SubLineUpButton_Click;
                     _subLineUpButtons.Add(button);
                     _subLineUpButtonPanel.Controls.Add(button);
                 }
 
-                _subLineUpButtonPanel.Controls.Add(_addSubLineUpButton);
             }
             finally
             {
                 _subLineUpButtonPanel.ResumeLayout(true);
             }
+        }
+
+        /// <summary>
+        /// 按当前分支数量移除或恢复新增分支按钮，避免满额时在按钮栏右侧保留不可用的加号。
+        /// </summary>
+        /// <param name="subLineUpCount">当前阵容的分支数量。</param>
+        private void UpdateAddSubLineUpButtonVisibility(int subLineUpCount)
+        {
+            bool shouldShowAddButton = subLineUpCount < LineUp.MaxSubLineUpCount;
+            bool containsAddButton = _subLineUpButtonPanel.Controls.Contains(_addSubLineUpButton);
+
+            if (shouldShowAddButton && !containsAddButton)
+            {
+                _subLineUpButtonPanel.Controls.Add(_addSubLineUpButton);
+            }
+            else if (!shouldShowAddButton && containsAddButton)
+            {
+                _subLineUpButtonPanel.Controls.Remove(_addSubLineUpButton);
+            }
+
+            _addSubLineUpButton.Enabled = shouldShowAddButton;
+            _addSubLineUpButton.Visible = shouldShowAddButton;
+            _subLineUpToolTip.SetToolTip(_addSubLineUpButton, string.Empty);
         }
 
         /// <summary>

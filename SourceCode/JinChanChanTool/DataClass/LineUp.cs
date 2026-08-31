@@ -12,14 +12,9 @@
 
 
         /// <summary>
-        /// 阵容分支总数量上限。
+        /// 阵容分支总数量上限，包含默认的“前期”分支。
         /// </summary>
-        public const int MaxSubLineUpCount = 6;
-
-        /// <summary>
-        /// 除默认首分支外，最多允许增加的分支数量。
-        /// </summary>
-        public const int MaxAdditionalSubLineUpCount = MaxSubLineUpCount - 1;
+        public const int MaxSubLineUpCount = 5;
 
         /// <summary>
         /// 新建阵容的默认首分支名称。
@@ -32,18 +27,11 @@
         public const string UnnamedSubLineUpName = "未命名";
 
         /// <summary>
-        /// 阵容分支。每个分支拥有独立的英雄、装备和站位数据。
+        /// 阵容分支。每个分支拥有独立的英雄、装备和站位数据；读取文件时替换默认集合，避免追加新的“前期”分支。
         /// </summary>
+        [Newtonsoft.Json.JsonProperty(ObjectCreationHandling = Newtonsoft.Json.ObjectCreationHandling.Replace)]
         public List<SubLineUp> SubLineUps { get; set; } = [new SubLineUp { Name = DefaultSubLineUpName }];
 
-        /// <summary>
-        /// 用于读取旧版 Flex 分支数据。规范化后会迁移到 <see cref="SubLineUps"/>，且不会再次写入文件。
-        /// </summary>
-        [Newtonsoft.Json.JsonProperty("FlexBranches")]
-        public List<FlexBranch> LegacyFlexBranches { get; set; } = [];
-
-        public bool ShouldSerializeLegacyFlexBranches() => false;
-      
         /// <summary>
         /// 对阵容命名的构造函数
         /// </summary>
@@ -57,42 +45,6 @@
         { 
 
         }
-    }
-
-    /// <summary>
-    /// 旧版 Flex 分支数据，仅用于本地阵容文件迁移。
-    /// </summary>
-    public class FlexBranch
-    {
-        /// <summary>
-        /// 旧版 Flex 分支数量上限。
-        /// </summary>
-        public const int MaxBranchCount = 5;
-
-        /// <summary>
-        /// 分支名称最大长度。
-        /// </summary>
-        public const int MaxNameLength = 20;
-
-        /// <summary>
-        /// 分支玩法说明最大长度。
-        /// </summary>
-        public const int MaxDescriptionLength = 200;
-
-        /// <summary>
-        /// 分支名称。
-        /// </summary>
-        public string Name { get; set; } = "Flex 分支";
-
-        /// <summary>
-        /// 简短的玩法说明。
-        /// </summary>
-        public string Description { get; set; } = "";
-
-        /// <summary>
-        /// 分支阵容和独立站位。
-        /// </summary>
-        public SubLineUp SubLineUp { get; set; } = new SubLineUp();
     }
 
     /// <summary>

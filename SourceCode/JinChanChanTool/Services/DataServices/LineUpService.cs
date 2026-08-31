@@ -851,20 +851,6 @@ namespace JinChanChanTool.Services.DataServices
             bool isLegacyFixedStageLayout = subLineUps.Count == 3 &&
                                             subLineUps.All(subLineUp => string.IsNullOrWhiteSpace(subLineUp.Name));
 
-            foreach (FlexBranch legacyFlexBranch in lineUp.LegacyFlexBranches ?? [])
-            {
-                if (legacyFlexBranch == null)
-                {
-                    continue;
-                }
-
-                SubLineUp migratedSubLineUp = legacyFlexBranch.SubLineUp ?? new SubLineUp();
-                migratedSubLineUp.Name = legacyFlexBranch.Name;
-                migratedSubLineUp.Description = legacyFlexBranch.Description;
-                subLineUps.Add(migratedSubLineUp);
-            }
-            lineUp.LegacyFlexBranches = [];
-
             if (subLineUps.Count == 0)
             {
                 subLineUps.Add(new SubLineUp());
