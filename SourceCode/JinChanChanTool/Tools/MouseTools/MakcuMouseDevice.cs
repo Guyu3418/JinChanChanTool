@@ -4,8 +4,16 @@ using System.Text;
 
 namespace JinChanChanTool.Tools.MouseTools
 {
-    internal sealed class MakcuMouseDevice : IDisposable
+    /// <summary>
+    /// 通过 Makcu 串口协议执行鼠标操作的设备实现。
+    /// </summary>
+    internal sealed class MakcuMouseDevice : IMouseOperationDevice, IDisposable
     {
+        /// <summary>
+        /// 单击时按下与抬起之间的最小等待时间（毫秒）。
+        /// </summary>
+        private const int LeftClickReleaseDelayMilliseconds = 2;
+
         private const int ConnectionTimeoutMilliseconds = 500;
         private readonly object syncRoot = new();
         private SerialPort? serialPort;
@@ -90,9 +98,16 @@ namespace JinChanChanTool.Tools.MouseTools
             }
         }
 
+        /// <summary>
+        /// 将相对位移拆分为 Makcu 协议支持的短整型分段移动命令。
+        /// </summary>
+        /// <param name="deltaX">横向位移。</param>
+        /// <param name="deltaY">纵向位移。</param>
+        /// <param name="error">发送失败时的错误信息。</param>
+        /// <returns>命令是否成功发送。</returns>
         public bool TryMove(int deltaX, int deltaY, out string error)
         {
-            var commands = new StringBuilder();
+            StringBuilder commands = new StringBuilder();
             int remainingX = deltaX;
             int remainingY = deltaY;
 
@@ -113,7 +128,69 @@ namespace JinChanChanTool.Tools.MouseTools
             return TrySend(commands.ToString(), out error);
         }
 
+        /// <summary>
+        /// 将 Makcu 的相对移动能力转换为统一设备接口要求的绝对坐标移动。
+        /// </summary>
+        public bool TrySetMousePosition(int x, int y, out string error)
+        {
+            Point currentPosition = Cursor.Position;
+            long deltaX = (long)x - currentPosition.X;
+            long deltaY = (long)y - currentPosition.Y;
+            if (deltaX < int.MinValue || deltaX > int.MaxValue ||
+                deltaY < int.MinValue || deltaY > int.MaxValue)
+            {
+                error = "Makcu 相对移动距离超出坐标范围。";
+                return false;
+            }
+
+            return TryMove((int)deltaX, (int)deltaY, out error);
+        }
+
+        /// <summary>
+        /// 按下 Makcu 控制的鼠标左键。
+        /// </summary>
+        public bool TryLeftButtonDown(out string error)
+        {
+            return TrySetLeftButtonState(true, out error);
+        }
+
+        /// <summary>
+        /// 抬起 Makcu 控制的鼠标左键。
+        /// </summary>
+        public bool TryLeftButtonUp(out string error)
+        {
+            return TrySetLeftButtonState(false, out error);
+        }
+
+        /// <summary>
+        /// 使用按下和抬起的统一接口完成一次 Makcu 左键单击。
+        /// </summary>
         public bool TryLeftClick(out string error)
+        {
+            return TryClickLeftButton(out error);
+        }
+
+        /// <summary>
+        /// 按下并抬起 Makcu 控制的鼠标左键。
+        /// </summary>
+        public bool TryClickLeftButton(out string error)
+        {
+            if (!TryLeftButtonDown(out error))
+            {
+                return false;
+            }
+
+            Thread.Sleep(LeftClickReleaseDelayMilliseconds);
+            return TryLeftButtonUp(out error);
+        }
+
+        /// <summary>
+        /// 向 Makcu 发送鼠标左键状态命令，并在串口异常时尽力释放按键。
+        /// </summary>
+        /// <param name="isPressed">是否按下鼠标左键。</param>
+        /// <param name="error">发送失败时的错误信息。</param>
+        /// <returns>命令是否成功发送。</returns>
+        private bool TrySetLeftButtonState(bool isPressed, out string error)
         {
             lock (syncRoot)
             {
@@ -127,9 +204,8 @@ namespace JinChanChanTool.Tools.MouseTools
                 try
                 {
                     DiscardPendingInputNoLock();
-                    serialPort.Write("km.left(1)\r\n");
-                    Thread.Sleep(2);
-                    serialPort.Write("km.left(0)\r\n");
+                    string command = isPressed ? "km.left(1)\r\n" : "km.left(0)\r\n";
+                    serialPort.Write(command);
                     return true;
                 }
                 catch (Exception ex)
@@ -187,8 +263,8 @@ namespace JinChanChanTool.Tools.MouseTools
             serialPort!.DiscardInBuffer();
             serialPort.Write("km.version()\r\n");
 
-            var response = new StringBuilder();
-            var timer = Stopwatch.StartNew();
+            StringBuilder response = new StringBuilder();
+            Stopwatch timer = Stopwatch.StartNew();
             while (timer.ElapsedMilliseconds < ConnectionTimeoutMilliseconds)
             {
                 if (serialPort.BytesToRead > 0)

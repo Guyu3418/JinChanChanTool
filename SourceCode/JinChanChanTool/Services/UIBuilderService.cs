@@ -280,7 +280,12 @@ namespace JinChanChanTool.Services
             if (_lineUpPanel != null)
             {
                 _lineUpPanel.Size = mainFormLineUpPanelSize;
-                _lineUpPanel.WrapContents = true; // 关键：允许换行！
+                _lineUpPanel.AutoScroll = false;
+                _lineUpPanel.WrapContents = true;
+                _lineUpPanel.EnableRowScroll = true;
+                _lineUpPanel.RowScrollStep = Dpi_M(71);
+                _lineUpPanel.RowScrollColumns = 5;
+                _lineUpPanel.RowScrollVisibleRows = 2;
             }
 
             if (_lineUpPanelParent != null)
@@ -289,7 +294,7 @@ namespace JinChanChanTool.Services
                 _lineUpPanelParent.Size = mainFormLineUpPanelParentSize;
             }
 
-            _lineUpPanel.AutoScroll = true;
+            _lineUpPanel.ResetRowScroll();
         }
 
         /// <summary>
@@ -319,7 +324,9 @@ namespace JinChanChanTool.Services
             if (LineUpForm_LineUpPanel != null)
             {
                 LineUpForm_LineUpPanel.Size = new Size(LineUpForm_LineUpPanel.Width, scaledHeight);
-                LineUpForm_LineUpPanel.WrapContents = true; // 允许换行
+                LineUpForm_LineUpPanel.AutoScroll = false;
+                LineUpForm_LineUpPanel.WrapContents = true;
+                LineUpForm_LineUpPanel.Padding = new Padding(Dpi_L(34), Dpi_L(2), Dpi_L(34), Dpi_L(2));
             }
 
             // 计算额外增加的高度
@@ -675,6 +682,7 @@ namespace JinChanChanTool.Services
             heroAndEquipmentPictureBox.Size = mainFormHeroAndEquipmentBoxSize;
             heroAndEquipmentPictureBox.Margin = mainFormHeroAndEquipmentBoxMargin;
             heroAndEquipmentPictureBox.Padding = new Padding(Dpi_M(2));
+            heroAndEquipmentPictureBox.Visible = false;
             parentPanel.Controls.Add(heroAndEquipmentPictureBox);
             return heroAndEquipmentPictureBox;
         }
@@ -832,6 +840,7 @@ namespace JinChanChanTool.Services
             heroAndEquipmentPictureBox.Size = new(Dpi_L(38), Dpi_L(53));
             heroAndEquipmentPictureBox.Margin = new Padding(Dpi_L(2));
             heroAndEquipmentPictureBox.Padding = new Padding(Dpi_L(2));
+            heroAndEquipmentPictureBox.Visible = false;
             parentPanel.Controls.Add(heroAndEquipmentPictureBox);
             return heroAndEquipmentPictureBox;
         }
@@ -860,8 +869,8 @@ namespace JinChanChanTool.Services
 
             requiredCount = Math.Min(requiredCount, 20);
 
-            _lineUpPanel.AutoScroll = true;
-            LineUpForm_LineUpPanel.AutoScroll = true;
+            _lineUpPanel.AutoScroll = false;
+            LineUpForm_LineUpPanel.AutoScroll = false;
 
             while (MainForm_HeroAndEquipmentPictureBoxes.Count < requiredCount)
             {

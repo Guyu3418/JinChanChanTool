@@ -100,14 +100,91 @@ namespace JinChanChanTool
         /// </summary>
         private EquipmentInformationToolTip _lineUpFormEquipmentToolTip;
 
-        // 后期 Flex 分支编辑器在运行时添加，避免改动主窗体的固定设计器布局。
-        private Panel _flexBranchPanel;
-        private ComboBox _flexBranchComboBox;
-        private TextBox _flexBranchNameTextBox;
-        private TextBox _flexBranchDescriptionTextBox;
-        private Button _addFlexBranchButton;
-        private Button _deleteFlexBranchButton;
-        private bool _isUpdatingFlexBranchEditor;
+        /// <summary>
+        /// 子阵容面板的内容左侧边距（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpContentLeft = 5;
+
+        /// <summary>
+        /// 子阵容分支按钮区的顶部位置（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpButtonPanelTop = 2;
+
+        /// <summary>
+        /// 子阵容内容区域的固定宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpContentWidth = 384;
+
+        /// <summary>
+        /// 子阵容展示区的固定宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpDisplayPanelWidth = 394;
+
+        /// <summary>
+        /// 主窗口用户区域的固定宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int UserPanelWidth = 404;
+
+        /// <summary>
+        /// 主窗口客户区的固定宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MainFormClientWidth = 410;
+
+        /// <summary>
+        /// 玩法说明文字与边框间的内边距（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpDescriptionPadding = 4;
+
+        /// <summary>
+        /// 子阵容分支按钮区的固定高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpButtonPanelHeight = 25;
+
+        /// <summary>
+        /// 当前分支玩法说明区的顶部位置（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpDescriptionTop = 29;
+
+        /// <summary>
+        /// 当前分支玩法说明区的显示高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpDescriptionHeight = 44;
+
+        /// <summary>
+        /// 英雄选框区域的顶部位置（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpHeroListTop = 77;
+
+        /// <summary>
+        /// 英雄选框区域的固定高度（96 DPI 逻辑像素），用于稳定展示两行英雄。
+        /// </summary>
+        private const int SubLineUpHeroListHeight = 152;
+
+        /// <summary>
+        /// 子阵容展示区的固定高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int SubLineUpDisplayPanelHeight = 234;
+
+        /// <summary>
+        /// 主窗口用户区域的固定高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int UserPanelHeight = 682;
+
+        /// <summary>
+        /// 主窗口客户区的固定高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MainFormClientHeight = 719;
+
+        // 分支按钮、玩法说明和右键菜单在运行时创建，以支持用户自定义任意分期名称和玩法说明。
+        private FlowLayoutPanel _subLineUpButtonPanel;
+        private readonly List<Button> _subLineUpButtons = [];
+        private Button _addSubLineUpButton;
+        private Label _subLineUpDescriptionLabel;
+        private readonly ToolTip _subLineUpToolTip = new ToolTip();
+        private readonly ContextMenuStrip _subLineUpContextMenu = new ContextMenuStrip();
+        private readonly ToolStripMenuItem _renameSubLineUpMenuItem = new ToolStripMenuItem();
+        private readonly ToolStripMenuItem _deleteSubLineUpMenuItem = new ToolStripMenuItem();
+        private int _contextSubLineUpIndex = -1;
 
         public MainForm(IManualSettingsService iManualSettingsService, IAutomaticSettingsService iAutomaticSettingsService, ILocalizationService iLocalizationService, IHeroDataService iheroDataService, IEquipmentService iEquipmentService, ICorrectionService iCorrectionService, ILineUpService iLineUpService, IHeroEquipmentDataService iHeroEquipmentDataService, IRecommendedLineUpService iRecommendedLineUpService, ILineUpParser iLineUpParser, IAutoUpdateService iAutoUpdateService)
         {
@@ -170,7 +247,7 @@ namespace JinChanChanTool
             _uiBuilderService.FirstBuilding();
             FirstBinding();
             _uiBuilderService.LineUpHeroAndEquipmentPictureBoxCreated += UIBuilderService_LineUpHeroAndEquipmentPictureBoxCreated;
-            InitializeFlexBranchEditor();
+            InitializeSubLineUpEditor();
             #endregion
 
             #region 游戏窗口捕获服务对象实例化并绑定事件
@@ -1577,163 +1654,337 @@ namespace JinChanChanTool
         }
         #endregion
 
-        #region Flex分支交互
-        private void InitializeFlexBranchEditor()
+        #region SubLineUp分支交互
+        private void InitializeSubLineUpEditor()
         {
-            _flexBranchPanel = new Panel
+            // 旧版固定三阶段按钮仅保留设计器兼容性，实际分支由动态按钮统一呈现。
+            button_变阵1.Visible = false;
+            button_变阵2.Visible = false;
+            button_变阵3.Visible = false;
+
+            _subLineUpButtonPanel = new FlowLayoutPanel
             {
-                BackColor = Color.FromArgb(245, 245, 245),
-                Location = new Point(5, 28),
-                Size = new Size(384, 78),
-                Visible = false
+                BackColor = Color.Transparent,
+                Location = new Point(
+                    LogicalToDeviceUnits(SubLineUpContentLeft),
+                    LogicalToDeviceUnits(SubLineUpButtonPanelTop)),
+                Margin = new Padding(0),
+                Padding = new Padding(0),
+                Size = LogicalToDeviceUnits(new Size(SubLineUpContentWidth, SubLineUpButtonPanelHeight)),
+                WrapContents = false
             };
 
-            _flexBranchComboBox = new ComboBox
+            // 使用现有子阵容展示面板承载说明，避免新增窗体嵌套层级并保证 DPI 缩放路径一致。
+            _subLineUpDescriptionLabel = new Label
             {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(0, 0),
-                Size = new Size(150, 25)
+                AutoEllipsis = true,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Location = new Point(
+                    LogicalToDeviceUnits(SubLineUpContentLeft),
+                    LogicalToDeviceUnits(SubLineUpDescriptionTop)),
+                Margin = new Padding(0),
+                Name = "label_玩法说明展示",
+                Padding = new Padding(LogicalToDeviceUnits(SubLineUpDescriptionPadding)),
+                Size = LogicalToDeviceUnits(new Size(SubLineUpContentWidth, SubLineUpDescriptionHeight)),
+                TabStop = false,
+                TextAlign = ContentAlignment.TopLeft
             };
-            _flexBranchComboBox.SelectedIndexChanged += FlexBranchComboBox_SelectedIndexChanged;
 
-            _addFlexBranchButton = new Button
+            _addSubLineUpButton = new Button
             {
                 FlatStyle = FlatStyle.Flat,
-                Location = new Point(154, 0),
-                Size = new Size(28, 25),
+                Margin = new Padding(0),
+                Size = LogicalToDeviceUnits(new Size(28, 25)),
                 Text = "+",
                 UseVisualStyleBackColor = true
             };
-            _addFlexBranchButton.Click += AddFlexBranchButton_Click;
+            _addSubLineUpButton.Click += AddSubLineUpButton_Click;
 
-            _deleteFlexBranchButton = new Button
-            {
-                FlatStyle = FlatStyle.Flat,
-                Location = new Point(186, 0),
-                Size = new Size(28, 25),
-                Text = "x",
-                UseVisualStyleBackColor = true
-            };
-            _deleteFlexBranchButton.Click += DeleteFlexBranchButton_Click;
+            // 右键菜单复用主菜单帮助项使用的 ToolStrip 菜单模式。
+            _subLineUpContextMenu.Items.AddRange([_renameSubLineUpMenuItem, _deleteSubLineUpMenuItem]);
+            _subLineUpContextMenu.Opening += SubLineUpContextMenu_Opening;
+            _renameSubLineUpMenuItem.Click += RenameSubLineUpMenuItem_Click;
+            _deleteSubLineUpMenuItem.Click += DeleteSubLineUpMenuItem_Click;
 
-            _flexBranchNameTextBox = new TextBox
-            {
-                Location = new Point(0, 28),
-                MaxLength = FlexBranch.MaxNameLength,
-                PlaceholderText = "分支名称",
-                Size = new Size(214, 25)
-            };
-            _flexBranchNameTextBox.TextChanged += FlexBranchMetadataTextBox_TextChanged;
-
-            _flexBranchDescriptionTextBox = new TextBox
-            {
-                Location = new Point(0, 54),
-                MaxLength = FlexBranch.MaxDescriptionLength,
-                PlaceholderText = "玩法说明",
-                Size = new Size(384, 24)
-            };
-            _flexBranchDescriptionTextBox.TextChanged += FlexBranchMetadataTextBox_TextChanged;
-
-            _flexBranchPanel.Controls.Add(_flexBranchComboBox);
-            _flexBranchPanel.Controls.Add(_addFlexBranchButton);
-            _flexBranchPanel.Controls.Add(_deleteFlexBranchButton);
-            _flexBranchPanel.Controls.Add(_flexBranchNameTextBox);
-            _flexBranchPanel.Controls.Add(_flexBranchDescriptionTextBox);
-            panel_子阵容展示区背景.Controls.Add(_flexBranchPanel);
-            _flexBranchPanel.BringToFront();
+            panel_子阵容展示区背景.Controls.Add(_subLineUpButtonPanel);
+            panel_子阵容展示区背景.Controls.Add(_subLineUpDescriptionLabel);
+            _subLineUpDescriptionLabel.BringToFront();
+            _subLineUpButtonPanel.BringToFront();
+            ApplySubLineUpButtonLayout();
+            ApplySubLineUpContextMenuLocalization();
         }
 
-        private void UpdateFlexBranchEditor(int selectedSubLineUpIndex)
+        /// <summary>
+        /// 移除内联编辑区后恢复主窗口阵容展示区域的设计器基准布局。
+        /// </summary>
+        private void ApplySubLineUpButtonLayout()
         {
-            if (_flexBranchPanel == null)
-            {
-                return;
-            }
-
-            bool isLateGame = selectedSubLineUpIndex == 2;
-            _flexBranchPanel.Visible = isLateGame;
             flowLayoutPanel_子阵容展示.Location = new Point(
-                LogicalToDeviceUnits(5),
-                LogicalToDeviceUnits(isLateGame ? 108 : 28));
-            flowLayoutPanel_子阵容展示.Size = LogicalToDeviceUnits(new Size(384, isLateGame ? 166 : 152));
-            panel_子阵容展示区背景.Size = LogicalToDeviceUnits(new Size(394, isLateGame ? 279 : 185));
-            panel_用户区背景.Size = LogicalToDeviceUnits(new Size(404, isLateGame ? 727 : 633));
-            ClientSize = LogicalToDeviceUnits(new Size(410, isLateGame ? 764 : 670));
+                LogicalToDeviceUnits(SubLineUpContentLeft),
+                LogicalToDeviceUnits(SubLineUpHeroListTop));
+            flowLayoutPanel_子阵容展示.Size = LogicalToDeviceUnits(new Size(
+                SubLineUpContentWidth,
+                SubLineUpHeroListHeight));
+            panel_子阵容展示区背景.Size = LogicalToDeviceUnits(new Size(
+                SubLineUpDisplayPanelWidth,
+                SubLineUpDisplayPanelHeight));
+            panel_用户区背景.Size = LogicalToDeviceUnits(new Size(UserPanelWidth, UserPanelHeight));
+            ClientSize = LogicalToDeviceUnits(new Size(MainFormClientWidth, MainFormClientHeight));
+        }
 
-            if (!isLateGame)
+        /// <summary>
+        /// 根据数据服务刷新动态分支按钮、选中状态和分支数量上限提示。
+        /// </summary>
+        private void UpdateSubLineUpButtonPanel()
+        {
+            if (_subLineUpButtonPanel == null)
             {
                 return;
             }
 
-            _isUpdatingFlexBranchEditor = true;
+            IReadOnlyList<SubLineUp> subLineUps = _iLineUpService.GetSubLineUps();
+            int selectedIndex = _iLineUpService.GetSubLineUpIndex();
+            if (_subLineUpButtons.Count != subLineUps.Count)
+            {
+                RebuildSubLineUpButtons(subLineUps.Count);
+            }
+
+            for (int i = 0; i < subLineUps.Count; i++)
+            {
+                Button button = _subLineUpButtons[i];
+                SubLineUp subLineUp = subLineUps[i];
+                if (button.Text != subLineUp.Name)
+                {
+                    button.Text = subLineUp.Name;
+                }
+
+                Color expectedBackColor = i == selectedIndex ? Color.FromArgb(130, 189, 39) : Color.White;
+                if (button.BackColor != expectedBackColor)
+                {
+                    button.BackColor = expectedBackColor;
+                }
+
+                if (_subLineUpToolTip.GetToolTip(button) != subLineUp.Description)
+                {
+                    _subLineUpToolTip.SetToolTip(button, subLineUp.Description);
+                }
+            }
+
+            UpdateSubLineUpDescription(subLineUps, selectedIndex);
+
+            bool isSubLineUpLimitReached = subLineUps.Count >= LineUp.MaxSubLineUpCount;
+            _addSubLineUpButton.Enabled = !isSubLineUpLimitReached;
+            _subLineUpToolTip.SetToolTip(
+                _addSubLineUpButton,
+                isSubLineUpLimitReached
+                    ? _iLocalizationService.Get("MainForm.ToolTip.分支数量已满")
+                    : string.Empty);
+        }
+
+        /// <summary>
+        /// 刷新当前选中分支的玩法说明，保证分支切换、重命名和删除后显示一致。
+        /// </summary>
+        /// <param name="subLineUps">当前阵容的全部子阵容。</param>
+        /// <param name="selectedIndex">当前选中的子阵容索引。</param>
+        private void UpdateSubLineUpDescription(IReadOnlyList<SubLineUp> subLineUps, int selectedIndex)
+        {
+            if (_subLineUpDescriptionLabel == null)
+            {
+                return;
+            }
+
+            string description = selectedIndex >= 0 && selectedIndex < subLineUps.Count
+                ? subLineUps[selectedIndex].Description
+                : string.Empty;
+            if (_subLineUpDescriptionLabel.Text != description)
+            {
+                _subLineUpDescriptionLabel.Text = description;
+            }
+
+            _subLineUpToolTip.SetToolTip(_subLineUpDescriptionLabel, description);
+        }
+
+        /// <summary>
+        /// 重新创建动态分支按钮，并为每个按钮绑定同一份右键菜单。
+        /// </summary>
+        /// <param name="subLineUpCount">当前阵容的分支数量。</param>
+        private void RebuildSubLineUpButtons(int subLineUpCount)
+        {
+            _subLineUpButtonPanel.SuspendLayout();
             try
             {
-                IReadOnlyList<FlexBranch> flexBranches = _iLineUpService.GetFlexBranches();
-                int selectedBranchIndex = _iLineUpService.GetFlexBranchIndex();
-
-                _flexBranchComboBox.Items.Clear();
-                _flexBranchComboBox.Items.Add("主后期阵容");
-                foreach (FlexBranch flexBranch in flexBranches)
+                foreach (Button button in _subLineUpButtons)
                 {
-                    _flexBranchComboBox.Items.Add(flexBranch.Name);
+                    button.Dispose();
                 }
-                _flexBranchComboBox.SelectedIndex = selectedBranchIndex + 1;
+                _subLineUpButtons.Clear();
+                _subLineUpButtonPanel.Controls.Clear();
 
-                FlexBranch currentFlexBranch = _iLineUpService.GetCurrentFlexBranch();
-                bool isEditingBranch = currentFlexBranch != null;
-                _flexBranchNameTextBox.Enabled = isEditingBranch;
-                _flexBranchDescriptionTextBox.Enabled = isEditingBranch;
-                _deleteFlexBranchButton.Enabled = isEditingBranch;
-                _addFlexBranchButton.Enabled = flexBranches.Count < FlexBranch.MaxBranchCount;
-                _flexBranchNameTextBox.Text = currentFlexBranch?.Name ?? string.Empty;
-                _flexBranchDescriptionTextBox.Text = currentFlexBranch?.Description ?? string.Empty;
+                for (int i = 0; i < subLineUpCount; i++)
+                {
+                    Button button = new Button
+                    {
+                        AutoEllipsis = true,
+                        ContextMenuStrip = _subLineUpContextMenu,
+                        FlatStyle = FlatStyle.Flat,
+                        Margin = new Padding(0),
+                        Size = LogicalToDeviceUnits(new Size(56, 25)),
+                        TabStop = false,
+                        Tag = i,
+                        UseVisualStyleBackColor = false
+                    };
+                    button.Click += SubLineUpButton_Click;
+                    _subLineUpButtons.Add(button);
+                    _subLineUpButtonPanel.Controls.Add(button);
+                }
+
+                _subLineUpButtonPanel.Controls.Add(_addSubLineUpButton);
             }
             finally
             {
-                _isUpdatingFlexBranchEditor = false;
+                _subLineUpButtonPanel.ResumeLayout(true);
             }
         }
 
-        private void FlexBranchComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        /// <summary>
+        /// 左键单击分支按钮时切换到对应分支。
+        /// </summary>
+        /// <param name="sender">被单击的分支按钮。</param>
+        /// <param name="e">单击事件参数。</param>
+        private void SubLineUpButton_Click(object sender, EventArgs e)
         {
-            if (_isUpdatingFlexBranchEditor || _flexBranchComboBox.SelectedIndex < 0)
+            if (sender is Button { Tag: int subLineUpIndex })
+            {
+                _iLineUpService.SetSubLineUpIndex(subLineUpIndex);
+            }
+        }
+
+        /// <summary>
+        /// 加号打开自定义编辑窗体；确认后从当前分支复制并创建新分支。
+        /// </summary>
+        /// <param name="sender">加号按钮。</param>
+        /// <param name="e">单击事件参数。</param>
+        private void AddSubLineUpButton_Click(object sender, EventArgs e)
+        {
+            if (_iLineUpService.GetSubLineUps().Count >= LineUp.MaxSubLineUpCount)
             {
                 return;
             }
 
-            _iLineUpService.SetFlexBranchIndex(_flexBranchComboBox.SelectedIndex - 1);
-        }
-
-        private void AddFlexBranchButton_Click(object sender, EventArgs e)
-        {
-            int nextIndex = _iLineUpService.GetFlexBranches().Count + 1;
-            _iLineUpService.AddFlexBranch($"Flex 分支 {nextIndex}");
-        }
-
-        private void DeleteFlexBranchButton_Click(object sender, EventArgs e)
-        {
-            int branchIndex = _iLineUpService.GetFlexBranchIndex();
-            if (branchIndex >= 0)
+            using (SubLineUpEditorForm subLineUpEditorForm = new SubLineUpEditorForm(
+                _iLocalizationService,
+                false,
+                string.Empty,
+                string.Empty))
             {
-                _iLineUpService.DeleteFlexBranch(branchIndex);
-            }
-        }
-
-        private void FlexBranchMetadataTextBox_TextChanged(object sender, EventArgs e)
-        {
-            if (_isUpdatingFlexBranchEditor || _iLineUpService.GetFlexBranchIndex() < 0)
-            {
-                return;
-            }
-
-            if (_iLineUpService.UpdateCurrentFlexBranch(_flexBranchNameTextBox.Text, _flexBranchDescriptionTextBox.Text))
-            {
-                int selectedItemIndex = _flexBranchComboBox.SelectedIndex;
-                if (selectedItemIndex > 0)
+                subLineUpEditorForm.TopMost = _iManualSettingsService.CurrentConfig.IsAllWindowsTopMost;
+                if (subLineUpEditorForm.ShowDialog(this) == DialogResult.OK &&
+                    !_iLineUpService.AddSubLineUp(
+                        subLineUpEditorForm.BranchName,
+                        subLineUpEditorForm.BranchDescription))
                 {
-                    _flexBranchComboBox.Items[selectedItemIndex] = _flexBranchNameTextBox.Text.Trim();
+                    ShowSubLineUpOperationFailedMessage();
                 }
             }
+        }
+
+        /// <summary>
+        /// 在打开右键菜单前记录目标分支，避免右键操作改变当前选中分支。
+        /// </summary>
+        /// <param name="sender">右键菜单。</param>
+        /// <param name="e">菜单打开事件参数。</param>
+        private void SubLineUpContextMenu_Opening(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (_subLineUpContextMenu.SourceControl is not Button { Tag: int subLineUpIndex } ||
+                subLineUpIndex < 0 ||
+                subLineUpIndex >= _iLineUpService.GetSubLineUps().Count)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            _contextSubLineUpIndex = subLineUpIndex;
+        }
+
+        /// <summary>
+        /// 右键菜单中的重命名项打开带初始数据的自定义编辑窗体。
+        /// </summary>
+        /// <param name="sender">重命名菜单项。</param>
+        /// <param name="e">单击事件参数。</param>
+        private void RenameSubLineUpMenuItem_Click(object? sender, EventArgs e)
+        {
+            IReadOnlyList<SubLineUp> subLineUps = _iLineUpService.GetSubLineUps();
+            if (_contextSubLineUpIndex < 0 || _contextSubLineUpIndex >= subLineUps.Count)
+            {
+                return;
+            }
+
+            SubLineUp targetSubLineUp = subLineUps[_contextSubLineUpIndex];
+            using (SubLineUpEditorForm subLineUpEditorForm = new SubLineUpEditorForm(
+                _iLocalizationService,
+                true,
+                targetSubLineUp.Name,
+                targetSubLineUp.Description))
+            {
+                subLineUpEditorForm.TopMost = _iManualSettingsService.CurrentConfig.IsAllWindowsTopMost;
+                if (subLineUpEditorForm.ShowDialog(this) == DialogResult.OK &&
+                    !_iLineUpService.UpdateSubLineUpMetadata(
+                        _contextSubLineUpIndex,
+                        subLineUpEditorForm.BranchName,
+                        subLineUpEditorForm.BranchDescription))
+                {
+                    ShowSubLineUpOperationFailedMessage();
+                    return;
+                }
+            }
+
+            // 元数据更新不触发阵容变更事件，直接刷新按钮文本和玩法提示。
+            UpdateSubLineUpButtonPanel();
+        }
+
+        /// <summary>
+        /// 右键菜单中的删除项通过原生消息框进行二次确认。
+        /// </summary>
+        /// <param name="sender">删除菜单项。</param>
+        /// <param name="e">单击事件参数。</param>
+        private void DeleteSubLineUpMenuItem_Click(object? sender, EventArgs e)
+        {
+            if (_contextSubLineUpIndex < 0 || _contextSubLineUpIndex >= _iLineUpService.GetSubLineUps().Count)
+            {
+                return;
+            }
+
+            DialogResult result = MessageBox.Show(
+                _iLocalizationService.Get("MainForm.Msg.确认删除变阵"),
+                _iLocalizationService.Get("MainForm.MsgTitle.二次确认删除"),
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (result == DialogResult.Yes && !_iLineUpService.DeleteSubLineUp(_contextSubLineUpIndex))
+            {
+                ShowSubLineUpOperationFailedMessage();
+            }
+        }
+
+        /// <summary>
+        /// 更新右键菜单和分支数量提示的本地化文本。
+        /// </summary>
+        private void ApplySubLineUpContextMenuLocalization()
+        {
+            _renameSubLineUpMenuItem.Text = _iLocalizationService.Get("MainForm.Menu.重命名变阵");
+            _deleteSubLineUpMenuItem.Text = _iLocalizationService.Get("MainForm.Menu.删除变阵");
+        }
+
+        /// <summary>
+        /// 在服务层拒绝分支操作时显示统一的原生错误消息。
+        /// </summary>
+        private void ShowSubLineUpOperationFailedMessage()
+        {
+            MessageBox.Show(
+                _iLocalizationService.Get("MainForm.Msg.变阵操作失败"),
+                _iLocalizationService.Get("MainForm.MsgTitle.错误"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
         }
         #endregion
 
@@ -1778,39 +2029,40 @@ namespace JinChanChanTool
         public void LoadLineUpToUI()
         {
             waitForLoad = true;
-
-            // 获取数据
-            SubLineUp currentSubLineUp = _iLineUpService.GetCurrentSubLineUp();
-            List<LineUpUnit> units = currentSubLineUp.LineUpUnits;
-            LineUp currentLineUp = _iLineUpService.GetCurrentLineUp();
-            int subLineUpIndex = _iLineUpService.GetSubLineUpIndex();
-
-            _uiBuilderService.EnsureLineUpHeroAndEquipmentPictureBoxCapacity(units.Count);
-
-            // 获取所有英雄和装备数据
-            var heroDataList = units.Select(unit => new
+            flowLayoutPanel_子阵容展示.SuspendLayout();
+            LineUpForm.Instance.flowLayoutPanel_阵容展示.SuspendLayout();
+            try
             {
-                Hero = _iheroDataService.GetHeroFromName(unit.HeroName),
-                Equipment0 = _iEquipmentService.GetEquipmentFromName(unit.EquipmentNames[0]),
-                Equipment1 = _iEquipmentService.GetEquipmentFromName(unit.EquipmentNames[1]),
-                Equipment2 = _iEquipmentService.GetEquipmentFromName(unit.EquipmentNames[2])
-            }).ToList();
+                // 获取数据
+                SubLineUp currentSubLineUp = _iLineUpService.GetCurrentSubLineUp();
+                List<LineUpUnit> units = currentSubLineUp.LineUpUnits;
+                int subLineUpIndex = _iLineUpService.GetSubLineUpIndex();
 
-            // 清空UI
-            ClearCheckBox();
-            ClearHeroAndEquipmentPictureBoxes();
+                _uiBuilderService.EnsureLineUpHeroAndEquipmentPictureBoxCapacity(units.Count);
 
-            // 更新UI
-            UpdateCheckBoxes(units);
-            UpdateHeroAndEquipmentPictureBoxes(heroDataList);
-            UpdateSelectFormHeroPictureBoxes(currentSubLineUp);
-            UpdateSubLineUpButtons(subLineUpIndex, currentLineUp);
-            UpdateFlexBranchEditor(subLineUpIndex);
+                // 获取所有英雄和装备数据
+                var heroDataList = units.Select(unit => new
+                {
+                    Hero = _iheroDataService.GetHeroFromName(unit.HeroName),
+                    Equipment0 = _iEquipmentService.GetEquipmentFromName(unit.EquipmentNames[0]),
+                    Equipment1 = _iEquipmentService.GetEquipmentFromName(unit.EquipmentNames[1]),
+                    Equipment2 = _iEquipmentService.GetEquipmentFromName(unit.EquipmentNames[2])
+                }).ToList();
 
-            waitForLoad = false;
+                UpdateCheckBoxes(units);
+                UpdateHeroAndEquipmentPictureBoxes(heroDataList);
+                UpdateSelectFormHeroPictureBoxes(currentSubLineUp);
+                UpdateSubLineUpButtons(subLineUpIndex);
 
-            // 调试输出
-            Debug.WriteLine("当前阵容：" + string.Join("   ", heroDataList.Where(h => h.Hero != null).Select(h => h.Hero.HeroName)));
+                Debug.WriteLine("当前阵容：" + string.Join("   ", heroDataList.Where(h => h.Hero != null).Select(h => h.Hero.HeroName)));
+            }
+            finally
+            {
+                LineUpForm.Instance.flowLayoutPanel_阵容展示.ResumeLayout(true);
+                flowLayoutPanel_子阵容展示.ResumeLayout(true);
+                flowLayoutPanel_子阵容展示.ResetRowScroll();
+                waitForLoad = false;
+            }
         }
 
         /// <summary>
@@ -1832,10 +2084,12 @@ namespace JinChanChanTool
             foreach (var haep in _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes)
             {
                 haep.Clear();
+                haep.Visible = false;
             }
             foreach (var haep in _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes)
             {
                 haep.Clear();
+                haep.Visible = false;
             }
         }
 
@@ -1844,12 +2098,13 @@ namespace JinChanChanTool
         /// </summary>
         private void UpdateCheckBoxes(List<LineUpUnit> units)
         {
-            foreach (LineUpUnit unit in units)
+            HashSet<string> selectedHeroNames = units.Select(unit => unit.HeroName).ToHashSet();
+            foreach (CheckBox checkBox in _uiBuilderService.MainForm_CheckBoxes)
             {
-                CheckBox checkBox = _uiBuilderService.GetCheckBoxFromName(unit.HeroName);
-                if (checkBox != null)
+                bool isSelected = selectedHeroNames.Contains(checkBox.Tag as string);
+                if (checkBox.Checked != isSelected)
                 {
-                    checkBox.Checked = true;
+                    checkBox.Checked = isSelected;
                 }
             }
         }
@@ -1859,20 +2114,47 @@ namespace JinChanChanTool
         /// </summary>
         private void UpdateHeroAndEquipmentPictureBoxes(dynamic heroDataList)
         {
-            for (int i = 0; i < heroDataList.Count; i++)
-            {
-                var data = heroDataList[i];
-                if (data.Hero != null)
-                {
-                    _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].SetHero(
-                        data.Hero, _uiBuilderService, data.Equipment0, data.Equipment1, data.Equipment2);
-                    _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].SetHero(
-                        data.Hero, _uiBuilderService, data.Equipment0, data.Equipment1, data.Equipment2);
+            int pictureBoxCount = Math.Min(
+                _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes.Count,
+                _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes.Count);
 
-                    // 刷新装备槽的ToolTip状态，避免空装备槽在高DPI环境下的卡顿问题
+            for (int i = 0; i < pictureBoxCount; i++)
+            {
+                if (i >= heroDataList.Count || heroDataList[i].Hero == null)
+                {
+                    _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].Visible = false;
+                    _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].Visible = false;
+                    continue;
+                }
+
+                var data = heroDataList[i];
+                bool mainFormChanged = UpdateHeroAndEquipmentPictureBox(
+                    _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i], data);
+                bool lineUpFormChanged = UpdateHeroAndEquipmentPictureBox(
+                    _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i], data);
+                if (mainFormChanged || lineUpFormChanged)
+                {
                     RefreshEquipmentToolTips(i);
                 }
             }
+        }
+
+        private bool UpdateHeroAndEquipmentPictureBox(HeroAndEquipmentPictureBox pictureBox, dynamic data)
+        {
+            bool isCurrentData = pictureBox.Visible &&
+                                 pictureBox.heroPictureBox.Tag is Hero currentHero &&
+                                 currentHero.HeroName == data.Hero.HeroName &&
+                                 ReferenceEquals(pictureBox.equipmentPictureBox1.Tag, data.Equipment0) &&
+                                 ReferenceEquals(pictureBox.equipmentPictureBox2.Tag, data.Equipment1) &&
+                                 ReferenceEquals(pictureBox.equipmentPictureBox3.Tag, data.Equipment2);
+            if (isCurrentData)
+            {
+                return false;
+            }
+
+            pictureBox.SetHero(data.Hero, _uiBuilderService, data.Equipment0, data.Equipment1, data.Equipment2);
+            pictureBox.Visible = true;
+            return true;
         }
 
         /// <summary>
@@ -1899,36 +2181,21 @@ namespace JinChanChanTool
         {
             foreach (HeroPictureBox heroPictureBox in _uiBuilderService.SelectForm_HeroPictureBoxes)
             {
-                heroPictureBox.IsSelected = currentSubLineUp.Contains(heroPictureBox.Tag as string);
+                bool isSelected = currentSubLineUp.Contains(heroPictureBox.Tag as string);
+                if (heroPictureBox.IsSelected != isSelected)
+                {
+                    heroPictureBox.IsSelected = isSelected;
+                }
             }
         }
 
         /// <summary>
         /// 更新变阵按钮的选中状态和名称
         /// </summary>
-        private void UpdateSubLineUpButtons(int selectedIndex, LineUp currentLineUp)
+        private void UpdateSubLineUpButtons(int selectedIndex)
         {
-            Color selectedColor = Color.FromArgb(130, 189, 39);
-            Color normalColor = Color.White;
-
-            button_变阵1.BackColor = selectedIndex == 0 ? selectedColor : normalColor;
-            button_变阵2.BackColor = selectedIndex == 1 ? selectedColor : normalColor;
-            button_变阵3.BackColor = selectedIndex == 2 ? selectedColor : normalColor;
-
-            if (selectedIndex == 0)
-            {
-                button_变阵1.Focus();
-            }
-            else if (selectedIndex == 1)
-            {
-                button_变阵2.Focus();
-            }
-            else if (selectedIndex == 2)
-            {
-                button_变阵3.Focus();
-            }
-           
-
+            // 分支名称和说明由模态编辑窗体维护，此处只刷新动态按钮状态。
+            UpdateSubLineUpButtonPanel();
             LineUpForm.Instance.更新棋盘显示(selectedIndex);
         }
 
@@ -2896,6 +3163,8 @@ namespace JinChanChanTool
             button_变阵1.Text = _iLocalizationService.Get("MainForm.Button.前期");
             button_变阵2.Text = _iLocalizationService.Get("MainForm.Button.中期");
             button_变阵3.Text = _iLocalizationService.Get("MainForm.Button.后期");
+            // 动态分支右键菜单不在设计器中，需随主窗口语言一并更新。
+            ApplySubLineUpContextMenuLocalization();
 
             // 文本框占位符
             textBox_阵容码.Text = _iLocalizationService.Get("MainForm.TextBox.阵容码占位符");

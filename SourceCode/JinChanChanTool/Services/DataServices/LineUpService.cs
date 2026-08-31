@@ -40,11 +40,6 @@ namespace JinChanChanTool.Services.DataServices
         private int 变阵索引;
 
         /// <summary>
-        /// 当前 Flex 分支下标；-1 表示当前显示主后期阵容。
-        /// </summary>
-        private int _flexBranchIndex;
-
-        /// <summary>
         /// 英雄数据服务对象
         /// </summary>
         private IHeroDataService _iHeroDataService;
@@ -85,7 +80,6 @@ namespace JinChanChanTool.Services.DataServices
             InitializePaths();
             _pathIndex = 0;
             变阵索引 = 0;
-            _flexBranchIndex = -1;
             _lineUpIndex = lineUpIndex;
             _lineUps = new List<LineUp>();
         }
@@ -166,7 +160,6 @@ namespace JinChanChanTool.Services.DataServices
         {
             _iHeroDataService = heroDataService;
             变阵索引 = 0;
-            _flexBranchIndex = -1;
             _lineUpIndex = 0;
             _lineUps = new List<LineUp>();
             LoadFromFile();
@@ -411,15 +404,7 @@ namespace JinChanChanTool.Services.DataServices
         /// <returns></returns>
         public SubLineUp GetCurrentSubLineUp()
         {
-            if (_flexBranchIndex >= 0)
-            {
-                FlexBranch flexBranch = GetCurrentFlexBranch();
-                if (flexBranch != null)
-                {
-                    return flexBranch.SubLineUp;
-                }
-            }
-            return _lineUps[_lineUpIndex].SubLineUps[变阵索引];
+            return GetCurrentLineUp().SubLineUps[变阵索引];
         }
 
         /// <summary>
@@ -432,7 +417,6 @@ namespace JinChanChanTool.Services.DataServices
             {
                 _lineUpIndex = lineUpIndex;
                 变阵索引 = 0;
-                _flexBranchIndex = -1;
 
                 return true;
             }
@@ -455,10 +439,9 @@ namespace JinChanChanTool.Services.DataServices
         /// <returns></returns>
         public bool SetSubLineUpIndex(int index)
         {
-            if (index >= 0 && index < 3)
+            if (index >= 0 && index < GetCurrentLineUp().SubLineUps.Count)
             {
                 变阵索引 = index;
-                _flexBranchIndex = -1;
                 NotifyLineUpChanged();
                 return true;
             }
@@ -475,115 +458,98 @@ namespace JinChanChanTool.Services.DataServices
         }
 
         /// <summary>
-        /// 获取当前阵容的 Flex 分支。
+        /// 获取当前阵容的全部分支。
         /// </summary>
-        public IReadOnlyList<FlexBranch> GetFlexBranches()
+        public IReadOnlyList<SubLineUp> GetSubLineUps()
         {
-            return GetCurrentLineUp().FlexBranches;
+            return GetCurrentLineUp().SubLineUps;
         }
 
         /// <summary>
-        /// 获取当前选中的 Flex 分支。
+        /// 从当前分支复制创建一个带有名称和玩法说明的新分支。
         /// </summary>
-        public FlexBranch GetCurrentFlexBranch()
-        {
-            List<FlexBranch> flexBranches = GetCurrentLineUp().FlexBranches;
-            if (_flexBranchIndex < 0 || _flexBranchIndex >= flexBranches.Count)
-            {
-                return null;
-            }
-            return flexBranches[_flexBranchIndex];
-        }
-
-        /// <summary>
-        /// 切换当前 Flex 分支。-1 代表主后期阵容。
-        /// </summary>
-        public bool SetFlexBranchIndex(int index)
-        {
-            List<FlexBranch> flexBranches = GetCurrentLineUp().FlexBranches;
-            if (index < -1 || index >= flexBranches.Count)
-            {
-                return false;
-            }
-
-            变阵索引 = 2;
-            _flexBranchIndex = index;
-            NotifyLineUpChanged();
-            return true;
-        }
-
-        /// <summary>
-        /// 获取当前 Flex 分支下标。
-        /// </summary>
-        public int GetFlexBranchIndex()
-        {
-            return _flexBranchIndex;
-        }
-
-        /// <summary>
-        /// 从当前后期阵容复制出一个新的 Flex 分支。
-        /// </summary>
-        public bool AddFlexBranch(string name)
+        public bool AddSubLineUp(string name, string description)
         {
             LineUp currentLineUp = GetCurrentLineUp();
-            if (currentLineUp.FlexBranches.Count >= FlexBranch.MaxBranchCount)
+            if (currentLineUp.SubLineUps.Count >= LineUp.MaxSubLineUpCount)
             {
                 return false;
             }
 
-            string branchName = NormalizeFlexBranchName(name);
+            string branchName = NormalizeSubLineUpName(name);
             if (string.IsNullOrWhiteSpace(branchName))
             {
-                branchName = $"Flex 分支 {currentLineUp.FlexBranches.Count + 1}";
+                return false;
             }
 
-            currentLineUp.FlexBranches.Add(new FlexBranch
-            {
-                Name = branchName,
-                SubLineUp = CloneSubLineUp(currentLineUp.SubLineUps[2])
-            });
-            _flexBranchIndex = currentLineUp.FlexBranches.Count - 1;
-            变阵索引 = 2;
+            // 新分支以当前分支为基础，保留用户已有的英雄、装备和站位安排。
+            SubLineUp newSubLineUp = CloneSubLineUp(GetCurrentSubLineUp());
+            newSubLineUp.Name = branchName;
+            newSubLineUp.Description = NormalizeSubLineUpDescription(description);
+            currentLineUp.SubLineUps.Add(newSubLineUp);
+            变阵索引 = currentLineUp.SubLineUps.Count - 1;
             NotifyLineUpChanged();
             return true;
         }
 
         /// <summary>
-        /// 删除指定 Flex 分支。
+        /// 删除指定分支。删除唯一分支时以空的未命名分支保持阵容结构有效。
         /// </summary>
-        public bool DeleteFlexBranch(int index)
+        public bool DeleteSubLineUp(int index)
         {
-            List<FlexBranch> flexBranches = GetCurrentLineUp().FlexBranches;
-            if (index < 0 || index >= flexBranches.Count)
+            List<SubLineUp> subLineUps = GetCurrentLineUp().SubLineUps;
+            if (index < 0 || index >= subLineUps.Count)
             {
                 return false;
             }
 
-            flexBranches.RemoveAt(index);
-            _flexBranchIndex = -1;
-            变阵索引 = 2;
+            if (subLineUps.Count == 1)
+            {
+                // 最后一个分支被删除后创建新的空分支，避免当前分支索引失效。
+                subLineUps[0] = new SubLineUp
+                {
+                    Name = LineUp.UnnamedSubLineUpName,
+                    Description = string.Empty
+                };
+                变阵索引 = 0;
+                NotifyLineUpChanged();
+                return true;
+            }
+
+            subLineUps.RemoveAt(index);
+            if (变阵索引 > index)
+            {
+                变阵索引--;
+            }
+            else if (变阵索引 == index)
+            {
+                变阵索引 = Math.Min(index, subLineUps.Count - 1);
+            }
+
             NotifyLineUpChanged();
             return true;
         }
 
         /// <summary>
-        /// 更新当前 Flex 分支的元数据。
+        /// 更新指定分支的名称和玩法说明。
         /// </summary>
-        public bool UpdateCurrentFlexBranch(string name, string description)
+        public bool UpdateSubLineUpMetadata(int index, string name, string description)
         {
-            FlexBranch flexBranch = GetCurrentFlexBranch();
-            string branchName = NormalizeFlexBranchName(name);
-            if (flexBranch == null || string.IsNullOrWhiteSpace(branchName))
+            List<SubLineUp> subLineUps = GetCurrentLineUp().SubLineUps;
+            if (index < 0 || index >= subLineUps.Count)
             {
                 return false;
             }
 
-            flexBranch.Name = branchName;
-            flexBranch.Description = (description ?? string.Empty).Trim();
-            if (flexBranch.Description.Length > FlexBranch.MaxDescriptionLength)
+            string branchName = NormalizeSubLineUpName(name);
+            if (string.IsNullOrWhiteSpace(branchName))
             {
-                flexBranch.Description = flexBranch.Description[..FlexBranch.MaxDescriptionLength];
+                return false;
             }
+
+            SubLineUp targetSubLineUp = subLineUps[index];
+            targetSubLineUp.Name = branchName;
+            targetSubLineUp.Description = NormalizeSubLineUpDescription(description);
             return true;
         }
 
@@ -874,52 +840,58 @@ namespace JinChanChanTool.Services.DataServices
 
         private static IEnumerable<SubLineUp> GetAllSubLineUps(LineUp lineUp)
         {
-            foreach (SubLineUp subLineUp in lineUp.SubLineUps)
-            {
-                yield return subLineUp;
-            }
-
-            foreach (FlexBranch flexBranch in lineUp.FlexBranches)
-            {
-                yield return flexBranch.SubLineUp;
-            }
+            return lineUp.SubLineUps;
         }
 
         private static void NormalizeLineUp(LineUp lineUp)
         {
-            SubLineUp[] sourceSubLineUps = lineUp.SubLineUps ?? [];
-            lineUp.SubLineUps = new SubLineUp[3];
-            for (int i = 0; i < lineUp.SubLineUps.Length; i++)
+            List<SubLineUp> subLineUps = (lineUp.SubLineUps ?? [])
+                .Where(subLineUp => subLineUp != null)
+                .ToList();
+            bool isLegacyFixedStageLayout = subLineUps.Count == 3 &&
+                                            subLineUps.All(subLineUp => string.IsNullOrWhiteSpace(subLineUp.Name));
+
+            foreach (FlexBranch legacyFlexBranch in lineUp.LegacyFlexBranches ?? [])
             {
-                lineUp.SubLineUps[i] = i < sourceSubLineUps.Length && sourceSubLineUps[i] != null
-                    ? sourceSubLineUps[i]
-                    : new SubLineUp();
-                NormalizeSubLineUp(lineUp.SubLineUps[i]);
+                if (legacyFlexBranch == null)
+                {
+                    continue;
+                }
+
+                SubLineUp migratedSubLineUp = legacyFlexBranch.SubLineUp ?? new SubLineUp();
+                migratedSubLineUp.Name = legacyFlexBranch.Name;
+                migratedSubLineUp.Description = legacyFlexBranch.Description;
+                subLineUps.Add(migratedSubLineUp);
+            }
+            lineUp.LegacyFlexBranches = [];
+
+            if (subLineUps.Count == 0)
+            {
+                subLineUps.Add(new SubLineUp());
             }
 
-            lineUp.FlexBranches ??= [];
-            lineUp.FlexBranches = lineUp.FlexBranches.Take(FlexBranch.MaxBranchCount).ToList();
-            for (int i = 0; i < lineUp.FlexBranches.Count; i++)
+            lineUp.SubLineUps = subLineUps.Take(LineUp.MaxSubLineUpCount).ToList();
+            for (int i = 0; i < lineUp.SubLineUps.Count; i++)
             {
-                FlexBranch flexBranch = lineUp.FlexBranches[i] ?? new FlexBranch();
-                flexBranch.Name = NormalizeFlexBranchName(flexBranch.Name);
-                if (string.IsNullOrWhiteSpace(flexBranch.Name))
-                {
-                    flexBranch.Name = $"Flex 分支 {i + 1}";
-                }
-                flexBranch.Description = (flexBranch.Description ?? string.Empty).Trim();
-                if (flexBranch.Description.Length > FlexBranch.MaxDescriptionLength)
-                {
-                    flexBranch.Description = flexBranch.Description[..FlexBranch.MaxDescriptionLength];
-                }
-                flexBranch.SubLineUp ??= new SubLineUp();
-                NormalizeSubLineUp(flexBranch.SubLineUp);
-                lineUp.FlexBranches[i] = flexBranch;
+                NormalizeSubLineUp(lineUp.SubLineUps[i], i, isLegacyFixedStageLayout);
             }
         }
 
-        private static void NormalizeSubLineUp(SubLineUp subLineUp)
+        private static void NormalizeSubLineUp(SubLineUp subLineUp, int index, bool isLegacyFixedStageLayout)
         {
+            subLineUp.Name = NormalizeSubLineUpName(subLineUp.Name);
+            // 将上一版本自动生成的首分支名称迁移为新的默认名称。
+            if (index == 0 && subLineUp.Name == "主分支")
+            {
+                subLineUp.Name = LineUp.DefaultSubLineUpName;
+            }
+            if (string.IsNullOrWhiteSpace(subLineUp.Name))
+            {
+                subLineUp.Name = isLegacyFixedStageLayout && index < 3
+                    ? new[] { "前期", "中期", "后期" }[index]
+                    : index == 0 ? LineUp.DefaultSubLineUpName : $"分支 {index + 1}";
+            }
+            subLineUp.Description = NormalizeSubLineUpDescription(subLineUp.Description);
             subLineUp.LineUpUnits ??= [];
             if (subLineUp.LineUpUnits.Count > MaxLineUpHeroCount)
             {
@@ -941,6 +913,8 @@ namespace JinChanChanTool.Services.DataServices
         {
             return new SubLineUp
             {
+                Name = source.Name,
+                Description = source.Description,
                 LineUpUnits = source.LineUpUnits.Select(unit => new LineUpUnit
                 {
                     HeroName = unit.HeroName,
@@ -951,12 +925,23 @@ namespace JinChanChanTool.Services.DataServices
             };
         }
 
-        private static string NormalizeFlexBranchName(string name)
+        private static string NormalizeSubLineUpName(string name)
         {
             string normalizedName = (name ?? string.Empty).Trim();
-            return normalizedName.Length > FlexBranch.MaxNameLength
-                ? normalizedName[..FlexBranch.MaxNameLength]
+            return normalizedName.Length > SubLineUp.MaxNameLength
+                ? normalizedName[..SubLineUp.MaxNameLength]
                 : normalizedName;
+        }
+
+        /// <summary>
+        /// 将玩法说明限制在数据模型允许的范围内。
+        /// </summary>
+        private static string NormalizeSubLineUpDescription(string description)
+        {
+            string normalizedDescription = (description ?? string.Empty).Trim();
+            return normalizedDescription.Length > SubLineUp.MaxDescriptionLength
+                ? normalizedDescription[..SubLineUp.MaxDescriptionLength]
+                : normalizedDescription;
         }
 
         private void NotifyLineUpChanged()

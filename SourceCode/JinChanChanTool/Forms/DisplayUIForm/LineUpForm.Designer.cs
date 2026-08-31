@@ -122,8 +122,11 @@ namespace JinChanChanTool.Forms
             //
             // button_分支
             //
-            button_分支.BackColor = Color.FromArgb(45, 45, 48);
+            // 分支按钮不按当前分支切换颜色，统一保持黑色。
+            button_分支.BackColor = Color.Black;
             button_分支.FlatAppearance.BorderColor = Color.Gray;
+            button_分支.FlatAppearance.MouseDownBackColor = Color.Black;
+            button_分支.FlatAppearance.MouseOverBackColor = Color.Black;
             button_分支.FlatStyle = FlatStyle.Flat;
             button_分支.ForeColor = SystemColors.Control;
             button_分支.Location = new Point(430, 1);

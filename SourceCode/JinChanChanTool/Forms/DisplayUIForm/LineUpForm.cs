@@ -65,7 +65,7 @@ namespace JinChanChanTool.Forms
         private IEquipmentService _equipmentService; // 装备数据服务对象
         private BoardDragManager _boardDragManager; // 棋盘拖拽管理器（替代 OLE DoDragDrop）
         private ILocalizationService _iLocalizationService; // 本地化服务对象
-        private readonly ContextMenuStrip _flexBranchMenu = new ContextMenuStrip();
+        private readonly ContextMenuStrip _subLineUpMenu = new ContextMenuStrip();
 
         private LineUpForm()
         {
@@ -277,7 +277,7 @@ namespace JinChanChanTool.Forms
             }
             hexagonBoard.BindSubLineUp(currentSubLineUp);
             benchPanel.BindSubLineUp(currentSubLineUp);
-            UpdateFlexBranchButton();
+            UpdateSubLineUpButton();
 
             // 同步刷新散件面板
             if (_isBoardExpanded && flowLayoutPanel_装备散件展示 != null && flowLayoutPanel_装备散件展示.Visible)
@@ -340,8 +340,15 @@ namespace JinChanChanTool.Forms
         /// </summary>
         public void 更新棋盘显示(int selectedIndex)
         {
-            // 刷新棋盘显示
-            RefreshHexagonBoard();
+            // 收起时不重绘隐藏的棋盘和备战席。它们会在展开时依据当前分支一次性刷新，
+            // 避免每次主窗口增删英雄都清空并重画全部站位格。
+            if (_isBoardExpanded)
+            {
+                RefreshHexagonBoard();
+                return;
+            }
+
+            UpdateSubLineUpButton();
         }
 
         private void LayoutExpandedBoard()
@@ -377,44 +384,35 @@ namespace JinChanChanTool.Forms
                 return;
             }
 
-            _flexBranchMenu.Items.Clear();
-            ToolStripMenuItem mainLineUpItem = new ToolStripMenuItem("主后期阵容");
-            mainLineUpItem.Click += (_, _) => _ilineUpService.SetFlexBranchIndex(-1);
-            _flexBranchMenu.Items.Add(mainLineUpItem);
-
-            IReadOnlyList<FlexBranch> flexBranches = _ilineUpService.GetFlexBranches();
-            if (flexBranches.Count > 0)
+            _subLineUpMenu.Items.Clear();
+            IReadOnlyList<SubLineUp> subLineUps = _ilineUpService.GetSubLineUps();
+            int selectedIndex = _ilineUpService.GetSubLineUpIndex();
+            for (int i = 0; i < subLineUps.Count; i++)
             {
-                _flexBranchMenu.Items.Add(new ToolStripSeparator());
-            }
-
-            for (int i = 0; i < flexBranches.Count; i++)
-            {
-                int branchIndex = i;
-                FlexBranch flexBranch = flexBranches[i];
-                ToolStripMenuItem branchItem = new ToolStripMenuItem(flexBranch.Name)
+                int subLineUpIndex = i;
+                SubLineUp subLineUp = subLineUps[i];
+                ToolStripMenuItem branchItem = new ToolStripMenuItem(subLineUp.Name)
                 {
-                    ToolTipText = flexBranch.Description
+                    Checked = subLineUpIndex == selectedIndex,
+                    ToolTipText = subLineUp.Description
                 };
-                branchItem.Click += (_, _) => _ilineUpService.SetFlexBranchIndex(branchIndex);
-                _flexBranchMenu.Items.Add(branchItem);
+                branchItem.Click += (_, _) => _ilineUpService.SetSubLineUpIndex(subLineUpIndex);
+                _subLineUpMenu.Items.Add(branchItem);
             }
 
-            _flexBranchMenu.Show(button_分支, new Point(0, button_分支.Height));
+            _subLineUpMenu.Show(button_分支, new Point(0, button_分支.Height));
         }
 
-        private void UpdateFlexBranchButton()
+        private void UpdateSubLineUpButton()
         {
             if (_ilineUpService == null)
             {
                 return;
             }
 
-            FlexBranch selectedBranch = _ilineUpService.GetCurrentFlexBranch();
-            button_分支.Enabled = _ilineUpService.GetFlexBranches().Count > 0 || selectedBranch != null;
-            button_分支.BackColor = selectedBranch == null
-                ? Color.FromArgb(45, 45, 48)
-                : Color.FromArgb(130, 189, 39);
+            button_分支.Enabled = _ilineUpService.GetSubLineUps().Count > 0;
+            // 分支切换仅由菜单项勾选状态表达，按钮本身始终保持黑色。
+            button_分支.BackColor = Color.Black;
         }
         #endregion
 

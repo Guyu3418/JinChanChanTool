@@ -37,25 +37,200 @@ namespace JinChanChanTool
         private Screen targetScreen;//目标显示器
         private Screen[] screens;//显示器数组
 
+        /// <summary>
+        /// 鼠标测试相对移动量（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseTestMovementOffset = 30;
+
+        /// <summary>
+        /// 鼠标点击测试使用的目标屏幕坐标。
+        /// </summary>
+        private const int MouseClickTestTargetCoordinate = 150;
+
+        /// <summary>
+        /// Makcu 常用串口波特率。
+        /// </summary>
+        private const int MakcuStandardBaudRate = 115200;
+
+        /// <summary>
+        /// Makcu 高速串口波特率。
+        /// </summary>
+        private const int MakcuHighBaudRate = 4000000;
+
+        /// <summary>
+        /// 鼠标方式下拉框中 WinAPI 选项的固定索引。
+        /// </summary>
+        private const int WinApiMouseControlModeIndex = 0;
+
+        /// <summary>
+        /// 鼠标方式下拉框中 Makcu 选项的固定索引。
+        /// </summary>
+        private const int MakcuMouseControlModeIndex = 1;
+
+        /// <summary>
+        /// 鼠标设置分区的统一首行位置（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingFirstSectionTop = 5;
+
+        /// <summary>
+        /// 鼠标设置分区之间的垂直间距（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingSectionHeight = 63;
+
+        /// <summary>
+        /// 鼠标设置分区中说明文字相对标题的垂直偏移（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingDescriptionOffset = 18;
+
+        /// <summary>
+        /// 鼠标设置分区中操作控件相对标题的垂直偏移（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingControlTopOffset = 14;
+
+        /// <summary>
+        /// 鼠标设置分区中分隔线相对标题的垂直偏移（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingSeparatorOffset = 57;
+
+        /// <summary>
+        /// 鼠标设置内容区域的左右边距（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingContentMargin = 5;
+
+        /// <summary>
+        /// 鼠标设置说明与右侧操作控件间的最小间距（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingDescriptionControlSpacing = 15;
+
+        /// <summary>
+        /// 鼠标设置面板的最小有效宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingMinimumPanelWidth = 320;
+
+        /// <summary>
+        /// 鼠标设置说明文字的最小显示宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingMinimumDescriptionWidth = 200;
+
+        /// <summary>
+        /// 鼠标设置说明文字的最大显示宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingMaximumDescriptionWidth = 660;
+
+        /// <summary>
+        /// 鼠标设置说明文字的最大显示高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingDescriptionHeight = 34;
+
+        /// <summary>
+        /// 鼠标设置标题文字的最大显示高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingTitleHeight = 17;
+
+        /// <summary>
+        /// 鼠标设置通用下拉框宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingComboBoxWidth = 140;
+
+        /// <summary>
+        /// Makcu 串口下拉框宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MakcuPortComboBoxWidth = 150;
+
+        /// <summary>
+        /// 刷新串口按钮宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int RefreshPortButtonWidth = 105;
+
+        /// <summary>
+        /// 测试操作按钮宽度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseTestButtonWidth = 140;
+
+        /// <summary>
+        /// 鼠标设置交互控件高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingControlHeight = 25;
+
+        /// <summary>
+        /// 鼠标设置控件间的水平间距（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingControlSpacing = 10;
+
+        /// <summary>
+        /// 鼠标设置分隔线高度（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseSettingSeparatorHeight = 1;
+
+        /// <summary>
+        /// 鼠标设置选项卡内边距（96 DPI 逻辑像素）。
+        /// </summary>
+        private const int MouseDeviceTabPadding = 3;
+
+        /// <summary>
+        /// 鼠标设置操作按钮边框宽度（逻辑像素）。
+        /// </summary>
+        private const int MouseSettingButtonBorderWidth = 1;
+
+        /// <summary>
+        /// 鼠标设置操作按钮圆角半径（逻辑像素）。
+        /// </summary>
+        private const int MouseSettingButtonCornerRadius = 1;
+
+        /// <summary>
+        /// 鼠标设置文字使用的字体大小（磅）。
+        /// </summary>
+        private const float MouseSettingFontSize = 9F;
+
+        /// <summary>
+        /// 鼠标设置说明文字颜色。
+        /// </summary>
+        private static readonly Color MouseSettingDescriptionColor = Color.FromArgb(133, 133, 133);
+
+        /// <summary>
+        /// 鼠标设置按钮禁用状态颜色。
+        /// </summary>
+        private static readonly Color MouseSettingButtonDisabledColor = Color.FromArgb(160, 160, 160);
+
+        /// <summary>
+        /// 鼠标设置按钮悬停状态颜色。
+        /// </summary>
+        private static readonly Color MouseSettingButtonHoverColor = Color.FromArgb(232, 232, 232);
+
+        /// <summary>
+        /// 鼠标设置按钮按下状态颜色。
+        /// </summary>
+        private static readonly Color MouseSettingButtonPressedColor = Color.FromArgb(222, 222, 222);
+
         private TabPage tabPage_鼠标设备 = null!;
-        private Panel panel_鼠标设备 = null!;
+        private TabControl tabControl_鼠标设备 = null!;
+        private TabPage tabPage_鼠标设备_常规 = null!;
+        private TabPage tabPage_鼠标设备_WinApi = null!;
+        private TabPage tabPage_鼠标设备_Makcu = null!;
+        private Panel panel_鼠标设备_常规 = null!;
+        private Panel panel_鼠标设备_WinApi = null!;
+        private Panel panel_鼠标设备_Makcu = null!;
         private Label label_鼠标移动方式 = null!;
         private Label label_鼠标移动方式描述 = null!;
+        private Label label_测试鼠标移动 = null!;
+        private Label label_测试鼠标移动描述 = null!;
+        private Label label_测试鼠标点击 = null!;
+        private Label label_测试鼠标点击描述 = null!;
         private Label label_Makcu串口 = null!;
         private Label label_Makcu串口描述 = null!;
         private Label label_Makcu波特率 = null!;
         private Label label_Makcu波特率描述 = null!;
         private Label label_Makcu连接状态 = null!;
         private Label label_Makcu连接状态描述 = null!;
-        private Label label_Makcu测试移动 = null!;
-        private Label label_Makcu测试移动描述 = null!;
         private ComboBox comboBox_鼠标移动方式 = null!;
         private ComboBox comboBox_Makcu串口 = null!;
         private ComboBox comboBox_Makcu波特率 = null!;
+        private RoundedButton roundedButton_测试鼠标移动 = null!;
+        private RoundedButton roundedButton_测试鼠标点击 = null!;
         private RoundedButton roundedButton_刷新Makcu串口 = null!;
         private RoundedButton roundedButton_测试Makcu连接 = null!;
-        private RoundedButton roundedButton_测试Makcu移动 = null!;
-        private readonly List<Panel> mouseDeviceSeparators = new();
+        private readonly List<Panel> generalMouseDeviceSeparators = new();
+        private readonly List<Panel> makcuMouseDeviceSeparators = new();
         private bool isUpdatingMouseDeviceControls;
 
         public SettingForm(IManualSettingsService iAppConfigService, IRecommendedLineUpService iRecommendedLineUpService, ILocalizationService iLocalizationService)
@@ -154,82 +329,166 @@ namespace JinChanChanTool
 
         private void InitializeMouseDeviceSettings()
         {
+            // 鼠标设备页沿用窗口设置页的 TabControl 分层方式，便于后续扩展更多输入设备。
             tabPage_鼠标设备 = new TabPage
             {
                 Name = "tabPage_鼠标设备",
-                Padding = new Padding(3),
+                Padding = new Padding(Dpi_S(MouseDeviceTabPadding)),
                 Text = "鼠标设备",
                 UseVisualStyleBackColor = true
             };
-            panel_鼠标设备 = new Panel
+            tabControl_鼠标设备 = new TabControl
             {
-                Name = "panel_鼠标设备",
-                AutoScroll = true,
-                BackColor = Color.White,
-                Dock = DockStyle.Fill
+                Dock = DockStyle.Fill,
+                Name = "tabControl_鼠标设备",
+                SelectedIndex = 0
             };
+            tabPage_鼠标设备_常规 = CreateMouseDeviceTabPage("tabPage_鼠标设备_常规");
+            tabPage_鼠标设备_WinApi = CreateMouseDeviceTabPage("tabPage_鼠标设备_WinApi");
+            tabPage_鼠标设备_Makcu = CreateMouseDeviceTabPage("tabPage_鼠标设备_Makcu");
+            panel_鼠标设备_常规 = CreateMouseDevicePanel("panel_鼠标设备_常规");
+            panel_鼠标设备_WinApi = CreateMouseDevicePanel("panel_鼠标设备_WinApi");
+            panel_鼠标设备_Makcu = CreateMouseDevicePanel("panel_鼠标设备_Makcu");
 
-            label_鼠标移动方式 = CreateMouseSettingLabel("label_鼠标移动方式", 5, true);
-            label_鼠标移动方式描述 = CreateMouseSettingLabel("label_鼠标移动方式描述", 23, false);
-            label_Makcu串口 = CreateMouseSettingLabel("label_Makcu串口", 68, true);
-            label_Makcu串口描述 = CreateMouseSettingLabel("label_Makcu串口描述", 86, false);
-            label_Makcu波特率 = CreateMouseSettingLabel("label_Makcu波特率", 131, true);
-            label_Makcu波特率描述 = CreateMouseSettingLabel("label_Makcu波特率描述", 149, false);
-            label_Makcu连接状态 = CreateMouseSettingLabel("label_Makcu连接状态", 194, true);
-            label_Makcu连接状态描述 = CreateMouseSettingLabel("label_Makcu连接状态描述", 212, false);
-            label_Makcu测试移动 = CreateMouseSettingLabel("label_Makcu测试移动", 257, true);
-            label_Makcu测试移动描述 = CreateMouseSettingLabel("label_Makcu测试移动描述", 275, false);
+            int secondSectionTop = MouseSettingFirstSectionTop + MouseSettingSectionHeight;
+            int thirdSectionTop = secondSectionTop + MouseSettingSectionHeight;
 
-            comboBox_鼠标移动方式 = CreateMouseSettingComboBox("comboBox_鼠标移动方式", 815, 19, 140);
-            comboBox_鼠标移动方式.Items.AddRange(new object[] { "WinAPI", "Makcu" });
+            // 常规子选项卡：按当前选中的输入方式执行基础移动与点击测试。
+            label_鼠标移动方式 = CreateMouseSettingLabel(
+                "label_鼠标移动方式",
+                MouseSettingFirstSectionTop,
+                true);
+            label_鼠标移动方式描述 = CreateMouseSettingLabel(
+                "label_鼠标移动方式描述",
+                MouseSettingFirstSectionTop + MouseSettingDescriptionOffset,
+                false);
+            label_测试鼠标移动 = CreateMouseSettingLabel(
+                "label_测试鼠标移动",
+                secondSectionTop,
+                true);
+            label_测试鼠标移动描述 = CreateMouseSettingLabel(
+                "label_测试鼠标移动描述",
+                secondSectionTop + MouseSettingDescriptionOffset,
+                false);
+            label_测试鼠标点击 = CreateMouseSettingLabel(
+                "label_测试鼠标点击",
+                thirdSectionTop,
+                true);
+            label_测试鼠标点击描述 = CreateMouseSettingLabel(
+                "label_测试鼠标点击描述",
+                thirdSectionTop + MouseSettingDescriptionOffset,
+                false);
 
-            comboBox_Makcu串口 = CreateMouseSettingComboBox("comboBox_Makcu串口", 690, 82, 150);
-            comboBox_Makcu波特率 = CreateMouseSettingComboBox("comboBox_Makcu波特率", 815, 145, 140);
-            comboBox_Makcu波特率.Items.AddRange(new object[] { 115200, 4000000 });
+            comboBox_鼠标移动方式 = CreateMouseSettingComboBox(
+                "comboBox_鼠标移动方式",
+                MouseSettingFirstSectionTop + MouseSettingControlTopOffset,
+                MouseSettingComboBoxWidth);
+            roundedButton_测试鼠标移动 = CreateMouseActionButton(
+                "roundedButton_测试鼠标移动",
+                secondSectionTop + MouseSettingControlTopOffset,
+                MouseTestButtonWidth);
+            roundedButton_测试鼠标点击 = CreateMouseActionButton(
+                "roundedButton_测试鼠标点击",
+                thirdSectionTop + MouseSettingControlTopOffset,
+                MouseTestButtonWidth);
 
-            roundedButton_刷新Makcu串口 = CreateMouseActionButton(
-                "roundedButton_刷新Makcu串口",
-                new Point(850, 81),
-                new Size(105, 25));
-            roundedButton_测试Makcu连接 = CreateMouseActionButton(
-                "roundedButton_测试Makcu连接",
-                new Point(815, 207),
-                new Size(140, 25));
-            roundedButton_测试Makcu移动 = CreateMouseActionButton(
-                "roundedButton_测试Makcu移动",
-                new Point(815, 270),
-                new Size(140, 25));
-
-            mouseDeviceSeparators.AddRange(new[]
+            generalMouseDeviceSeparators.AddRange(new Panel[]
             {
-                CreateMouseSettingSeparator(62),
-                CreateMouseSettingSeparator(125),
-                CreateMouseSettingSeparator(188),
-                CreateMouseSettingSeparator(251),
-                CreateMouseSettingSeparator(314)
+                CreateMouseSettingSeparator(MouseSettingFirstSectionTop + MouseSettingSeparatorOffset),
+                CreateMouseSettingSeparator(secondSectionTop + MouseSettingSeparatorOffset),
+                CreateMouseSettingSeparator(thirdSectionTop + MouseSettingSeparatorOffset)
             });
-
-            panel_鼠标设备.Controls.AddRange(new Control[]
+            panel_鼠标设备_常规.Controls.AddRange(new Control[]
             {
                 label_鼠标移动方式,
                 label_鼠标移动方式描述,
+                label_测试鼠标移动,
+                label_测试鼠标移动描述,
+                label_测试鼠标点击,
+                label_测试鼠标点击描述,
+                comboBox_鼠标移动方式,
+                roundedButton_测试鼠标移动,
+                roundedButton_测试鼠标点击
+            });
+            panel_鼠标设备_常规.Controls.AddRange(generalMouseDeviceSeparators.ToArray());
+
+            // WinAPI 子选项卡预留为空，后续 WinAPI 专属参数可直接放入该面板。
+
+            // Makcu 子选项卡保留现有串口、波特率和连接测试功能。
+            label_Makcu串口 = CreateMouseSettingLabel(
+                "label_Makcu串口",
+                MouseSettingFirstSectionTop,
+                true);
+            label_Makcu串口描述 = CreateMouseSettingLabel(
+                "label_Makcu串口描述",
+                MouseSettingFirstSectionTop + MouseSettingDescriptionOffset,
+                false);
+            label_Makcu波特率 = CreateMouseSettingLabel(
+                "label_Makcu波特率",
+                secondSectionTop,
+                true);
+            label_Makcu波特率描述 = CreateMouseSettingLabel(
+                "label_Makcu波特率描述",
+                secondSectionTop + MouseSettingDescriptionOffset,
+                false);
+            label_Makcu连接状态 = CreateMouseSettingLabel(
+                "label_Makcu连接状态",
+                thirdSectionTop,
+                true);
+            label_Makcu连接状态描述 = CreateMouseSettingLabel(
+                "label_Makcu连接状态描述",
+                thirdSectionTop + MouseSettingDescriptionOffset,
+                false);
+
+            comboBox_Makcu串口 = CreateMouseSettingComboBox(
+                "comboBox_Makcu串口",
+                MouseSettingFirstSectionTop + MouseSettingControlTopOffset,
+                MakcuPortComboBoxWidth);
+            comboBox_Makcu波特率 = CreateMouseSettingComboBox(
+                "comboBox_Makcu波特率",
+                secondSectionTop + MouseSettingControlTopOffset,
+                MouseSettingComboBoxWidth);
+            comboBox_Makcu波特率.Items.AddRange(new object[] { MakcuStandardBaudRate, MakcuHighBaudRate });
+            roundedButton_刷新Makcu串口 = CreateMouseActionButton(
+                "roundedButton_刷新Makcu串口",
+                MouseSettingFirstSectionTop + MouseSettingControlTopOffset,
+                RefreshPortButtonWidth);
+            roundedButton_测试Makcu连接 = CreateMouseActionButton(
+                "roundedButton_测试Makcu连接",
+                thirdSectionTop + MouseSettingControlTopOffset,
+                MouseTestButtonWidth);
+
+            makcuMouseDeviceSeparators.AddRange(new Panel[]
+            {
+                CreateMouseSettingSeparator(MouseSettingFirstSectionTop + MouseSettingSeparatorOffset),
+                CreateMouseSettingSeparator(secondSectionTop + MouseSettingSeparatorOffset),
+                CreateMouseSettingSeparator(thirdSectionTop + MouseSettingSeparatorOffset)
+            });
+            panel_鼠标设备_Makcu.Controls.AddRange(new Control[]
+            {
                 label_Makcu串口,
                 label_Makcu串口描述,
                 label_Makcu波特率,
                 label_Makcu波特率描述,
                 label_Makcu连接状态,
                 label_Makcu连接状态描述,
-                label_Makcu测试移动,
-                label_Makcu测试移动描述,
-                comboBox_鼠标移动方式,
                 comboBox_Makcu串口,
                 comboBox_Makcu波特率,
                 roundedButton_刷新Makcu串口,
-                roundedButton_测试Makcu连接,
-                roundedButton_测试Makcu移动
+                roundedButton_测试Makcu连接
             });
-            panel_鼠标设备.Controls.AddRange(mouseDeviceSeparators.ToArray());
-            tabPage_鼠标设备.Controls.Add(panel_鼠标设备);
+            panel_鼠标设备_Makcu.Controls.AddRange(makcuMouseDeviceSeparators.ToArray());
+
+            tabPage_鼠标设备_常规.Controls.Add(panel_鼠标设备_常规);
+            tabPage_鼠标设备_WinApi.Controls.Add(panel_鼠标设备_WinApi);
+            tabPage_鼠标设备_Makcu.Controls.Add(panel_鼠标设备_Makcu);
+            tabControl_鼠标设备.TabPages.AddRange(new TabPage[]
+            {
+                tabPage_鼠标设备_常规,
+                tabPage_鼠标设备_WinApi,
+                tabPage_鼠标设备_Makcu
+            });
+            tabPage_鼠标设备.Controls.Add(tabControl_鼠标设备);
 
             int developerTabIndex = tabControl_设置.TabPages.IndexOf(tabPage_开发者选项);
             tabControl_设置.TabPages.Insert(developerTabIndex, tabPage_鼠标设备);
@@ -239,15 +498,67 @@ namespace JinChanChanTool
             comboBox_Makcu串口.DropDown += (_, _) => RefreshMakcuPorts();
             comboBox_Makcu波特率.SelectedIndexChanged += comboBox_Makcu波特率_SelectedIndexChanged;
             roundedButton_刷新Makcu串口.Click += (_, _) => RefreshMakcuPorts();
+            roundedButton_测试鼠标移动.Click += roundedButton_测试鼠标移动_Click;
+            roundedButton_测试鼠标点击.Click += roundedButton_测试鼠标点击_Click;
             roundedButton_测试Makcu连接.Click += roundedButton_测试Makcu连接_Click;
-            roundedButton_测试Makcu移动.Click += roundedButton_测试Makcu移动_Click;
-            panel_鼠标设备.Resize += (_, _) => LayoutMouseDeviceSettings();
+            panel_鼠标设备_常规.Resize += (_, _) => LayoutMouseDeviceSettings();
+            panel_鼠标设备_Makcu.Resize += (_, _) => LayoutMouseDeviceSettings();
 
+            // 在首次读取配置前填充选项，避免对空下拉框设置 SelectedIndex。
+            UpdateMouseControlModeOptions();
             RefreshMakcuPorts();
             LayoutMouseDeviceSettings();
         }
 
-        private static Label CreateMouseSettingLabel(string name, int y, bool isTitle)
+        /// <summary>
+        /// 创建鼠标设备子选项卡，统一使用父级选项卡的可视化样式。
+        /// </summary>
+        /// <param name="name">子选项卡名称。</param>
+        /// <returns>已创建的子选项卡。</returns>
+        private TabPage CreateMouseDeviceTabPage(string name)
+        {
+            return new TabPage
+            {
+                Name = name,
+                Padding = new Padding(Dpi_S(MouseDeviceTabPadding)),
+                UseVisualStyleBackColor = true
+            };
+        }
+
+        /// <summary>
+        /// 创建鼠标设备子选项卡的内容面板。
+        /// </summary>
+        /// <param name="name">内容面板名称。</param>
+        /// <returns>已创建的内容面板。</returns>
+        private static Panel CreateMouseDevicePanel(string name)
+        {
+            return new Panel
+            {
+                AutoScroll = true,
+                BackColor = Color.White,
+                Dock = DockStyle.Fill,
+                Name = name
+            };
+        }
+
+        /// <summary>
+        /// 将 96 DPI 逻辑尺寸转换为当前设置窗体的设备尺寸。
+        /// </summary>
+        /// <param name="logicalValue">96 DPI 下的逻辑尺寸。</param>
+        /// <returns>当前 DPI 下的设备尺寸。</returns>
+        private int Dpi_S(int logicalValue)
+        {
+            return LogicalToDeviceUnits(logicalValue);
+        }
+
+        /// <summary>
+        /// 创建鼠标设置页使用的说明标签，并根据当前 DPI 转换固定尺寸。
+        /// </summary>
+        /// <param name="name">控件名称。</param>
+        /// <param name="logicalY">96 DPI 下的纵坐标。</param>
+        /// <param name="isTitle">是否为分区标题。</param>
+        /// <returns>已创建的标签。</returns>
+        private Label CreateMouseSettingLabel(string name, int logicalY, bool isTitle)
         {
             return new Label
             {
@@ -255,93 +566,150 @@ namespace JinChanChanTool
                 AutoSize = true,
                 Font = new Font(
                     "Microsoft YaHei UI",
-                    9F,
+                    MouseSettingFontSize,
                     isTitle ? FontStyle.Bold : FontStyle.Regular,
-                    GraphicsUnit.Point,
-                    134),
-                ForeColor = isTitle ? SystemColors.ControlText : Color.FromArgb(133, 133, 133),
-                Location = new Point(5, y),
-                MaximumSize = new Size(660, isTitle ? 17 : 34)
+                    GraphicsUnit.Point),
+                ForeColor = isTitle ? SystemColors.ControlText : MouseSettingDescriptionColor,
+                Location = new Point(Dpi_S(MouseSettingContentMargin), Dpi_S(logicalY)),
+                MaximumSize = new Size(
+                    Dpi_S(MouseSettingMaximumDescriptionWidth),
+                    Dpi_S(isTitle ? MouseSettingTitleHeight : MouseSettingDescriptionHeight))
             };
         }
 
-        private static ComboBox CreateMouseSettingComboBox(string name, int x, int y, int width)
+        /// <summary>
+        /// 创建鼠标设置页使用的下拉框，并根据当前 DPI 转换固定尺寸。
+        /// </summary>
+        /// <param name="name">控件名称。</param>
+        /// <param name="logicalY">96 DPI 下的纵坐标。</param>
+        /// <param name="logicalWidth">96 DPI 下的宽度。</param>
+        /// <returns>已创建的下拉框。</returns>
+        private ComboBox CreateMouseSettingComboBox(string name, int logicalY, int logicalWidth)
         {
             return new ComboBox
             {
                 Name = name,
-                Anchor = AnchorStyles.Top,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 FormattingEnabled = true,
-                Location = new Point(x, y),
-                Size = new Size(width, 25),
+                Location = new Point(0, Dpi_S(logicalY)),
+                Size = new Size(Dpi_S(logicalWidth), Dpi_S(MouseSettingControlHeight)),
                 TabStop = false
             };
         }
 
-        private static RoundedButton CreateMouseActionButton(string name, Point location, Size size)
+        /// <summary>
+        /// 创建鼠标设置页使用的操作按钮，并根据当前 DPI 转换固定尺寸。
+        /// </summary>
+        /// <param name="name">控件名称。</param>
+        /// <param name="logicalY">96 DPI 下的纵坐标。</param>
+        /// <param name="logicalWidth">96 DPI 下的宽度。</param>
+        /// <returns>已创建的操作按钮。</returns>
+        private RoundedButton CreateMouseActionButton(string name, int logicalY, int logicalWidth)
         {
             return new RoundedButton
             {
                 Name = name,
-                Anchor = AnchorStyles.Top,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
                 BorderColor = SystemColors.ScrollBar,
-                BorderWidth = 1,
+                BorderWidth = MouseSettingButtonBorderWidth,
                 ButtonColor = Color.White,
-                CornerRadius = 1,
-                DisabledColor = Color.FromArgb(160, 160, 160),
-                HoverColor = Color.FromArgb(232, 232, 232),
-                Location = location,
-                PressedColor = Color.FromArgb(222, 222, 222),
-                Size = size,
+                CornerRadius = MouseSettingButtonCornerRadius,
+                DisabledColor = MouseSettingButtonDisabledColor,
+                HoverColor = MouseSettingButtonHoverColor,
+                Location = new Point(0, Dpi_S(logicalY)),
+                PressedColor = MouseSettingButtonPressedColor,
+                Size = new Size(Dpi_S(logicalWidth), Dpi_S(MouseSettingControlHeight)),
                 TextColor = Color.Black,
-                TextFont = new Font("Microsoft YaHei UI", 9F)
+                TextFont = new Font("Microsoft YaHei UI", MouseSettingFontSize, FontStyle.Regular, GraphicsUnit.Point)
             };
         }
 
-        private static Panel CreateMouseSettingSeparator(int y)
+        /// <summary>
+        /// 创建鼠标设置页使用的水平分隔线，并根据当前 DPI 转换固定位置。
+        /// </summary>
+        /// <param name="logicalY">96 DPI 下的纵坐标。</param>
+        /// <returns>已创建的分隔线。</returns>
+        private Panel CreateMouseSettingSeparator(int logicalY)
         {
             return new Panel
             {
-                Anchor = AnchorStyles.Top | AnchorStyles.Left,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 BackColor = Color.Silver,
-                Location = new Point(5, y),
+                Location = new Point(Dpi_S(MouseSettingContentMargin), Dpi_S(logicalY)),
                 Margin = new Padding(0),
-                Size = new Size(950, 1)
+                Size = new Size(0, Dpi_S(MouseSettingSeparatorHeight))
             };
         }
 
+        /// <summary>
+        /// 按鼠标设备子选项卡的当前宽度对右侧控件、说明文字和分隔线重新布局。
+        /// </summary>
         private void LayoutMouseDeviceSettings()
         {
-            int right = Math.Max(320, panel_鼠标设备.ClientSize.Width - 5);
+            int generalRight = GetMouseSettingRight(panel_鼠标设备_常规);
+            comboBox_鼠标移动方式.Left = generalRight - comboBox_鼠标移动方式.Width;
+            roundedButton_测试鼠标移动.Left = generalRight - roundedButton_测试鼠标移动.Width;
+            roundedButton_测试鼠标点击.Left = generalRight - roundedButton_测试鼠标点击.Width;
+            LayoutMouseSettingDescription(label_鼠标移动方式描述, comboBox_鼠标移动方式.Left);
+            LayoutMouseSettingDescription(label_测试鼠标移动描述, roundedButton_测试鼠标移动.Left);
+            LayoutMouseSettingDescription(label_测试鼠标点击描述, roundedButton_测试鼠标点击.Left);
+            LayoutMouseSettingSeparators(panel_鼠标设备_常规, generalMouseDeviceSeparators);
 
-            comboBox_鼠标移动方式.Left = right - comboBox_鼠标移动方式.Width;
-            roundedButton_刷新Makcu串口.Left = right - roundedButton_刷新Makcu串口.Width;
-            comboBox_Makcu串口.Left = roundedButton_刷新Makcu串口.Left - 10 - comboBox_Makcu串口.Width;
-            comboBox_Makcu波特率.Left = right - comboBox_Makcu波特率.Width;
-            roundedButton_测试Makcu连接.Left = right - roundedButton_测试Makcu连接.Width;
-            roundedButton_测试Makcu移动.Left = right - roundedButton_测试Makcu移动.Width;
+            int makcuRight = GetMouseSettingRight(panel_鼠标设备_Makcu);
+            roundedButton_刷新Makcu串口.Left = makcuRight - roundedButton_刷新Makcu串口.Width;
+            comboBox_Makcu串口.Left = roundedButton_刷新Makcu串口.Left -
+                                     Dpi_S(MouseSettingControlSpacing) -
+                                     comboBox_Makcu串口.Width;
+            comboBox_Makcu波特率.Left = makcuRight - comboBox_Makcu波特率.Width;
+            roundedButton_测试Makcu连接.Left = makcuRight - roundedButton_测试Makcu连接.Width;
+            LayoutMouseSettingDescription(label_Makcu串口描述, comboBox_Makcu串口.Left);
+            LayoutMouseSettingDescription(label_Makcu波特率描述, comboBox_Makcu波特率.Left);
+            LayoutMouseSettingDescription(label_Makcu连接状态描述, roundedButton_测试Makcu连接.Left);
+            LayoutMouseSettingSeparators(panel_鼠标设备_Makcu, makcuMouseDeviceSeparators);
+        }
 
-            foreach (Panel separator in mouseDeviceSeparators)
+        /// <summary>
+        /// 获取鼠标设置页右侧控件可使用的水平边界。
+        /// </summary>
+        /// <param name="panel">当前子选项卡的内容面板。</param>
+        /// <returns>右侧控件的逻辑右边界。</returns>
+        private int GetMouseSettingRight(Panel panel)
+        {
+            return Math.Max(
+                Dpi_S(MouseSettingMinimumPanelWidth),
+                panel.ClientSize.Width - Dpi_S(MouseSettingContentMargin));
+        }
+
+        /// <summary>
+        /// 根据右侧控件位置设置说明标签的最大显示宽度。
+        /// </summary>
+        /// <param name="descriptionLabel">需要布局的说明标签。</param>
+        /// <param name="rightControlLeft">右侧控件的左边界。</param>
+        private void LayoutMouseSettingDescription(Label descriptionLabel, int rightControlLeft)
+        {
+            int descriptionWidth = Math.Max(
+                Dpi_S(MouseSettingMinimumDescriptionWidth),
+                rightControlLeft - Dpi_S(MouseSettingDescriptionControlSpacing));
+            descriptionLabel.MaximumSize = new Size(
+                descriptionWidth,
+                Dpi_S(MouseSettingDescriptionHeight));
+        }
+
+        /// <summary>
+        /// 按内容面板宽度拉伸一组鼠标设置分隔线。
+        /// </summary>
+        /// <param name="panel">当前子选项卡的内容面板。</param>
+        /// <param name="separators">需要拉伸的分隔线集合。</param>
+        private void LayoutMouseSettingSeparators(Panel panel, List<Panel> separators)
+        {
+            int separatorWidth = Math.Max(
+                0,
+                panel.ClientSize.Width - Dpi_S(MouseSettingContentMargin * 2));
+            foreach (Panel separator in separators)
             {
-                separator.Width = Math.Max(0, panel_鼠标设备.ClientSize.Width - 10);
+                separator.Width = separatorWidth;
             }
-
-            label_鼠标移动方式描述.MaximumSize = new Size(
-                Math.Max(200, comboBox_鼠标移动方式.Left - 15),
-                34);
-            label_Makcu串口描述.MaximumSize = new Size(
-                Math.Max(200, comboBox_Makcu串口.Left - 15),
-                34);
-            label_Makcu波特率描述.MaximumSize = new Size(
-                Math.Max(200, comboBox_Makcu波特率.Left - 15),
-                34);
-            label_Makcu连接状态描述.MaximumSize = new Size(
-                Math.Max(200, roundedButton_测试Makcu连接.Left - 15),
-                34);
-            label_Makcu测试移动描述.MaximumSize = new Size(
-                Math.Max(200, roundedButton_测试Makcu移动.Left - 15),
-                34);
         }
 
         private void UpdateMouseDeviceControls()
@@ -349,8 +717,14 @@ namespace JinChanChanTool
             isUpdatingMouseDeviceControls = true;
             try
             {
+                int targetMouseControlModeIndex =
+                    _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu
+                        ? MakcuMouseControlModeIndex
+                        : WinApiMouseControlModeIndex;
                 comboBox_鼠标移动方式.SelectedIndex =
-                    _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu ? 1 : 0;
+                    comboBox_鼠标移动方式.Items.Count > targetMouseControlModeIndex
+                        ? targetMouseControlModeIndex
+                        : -1;
 
                 RefreshMakcuPorts();
                 int baudRate = _iappConfigService.CurrentConfig.MakcuBaudRate;
@@ -366,6 +740,31 @@ namespace JinChanChanTool
             }
 
             UpdateMakcuControlState();
+        }
+
+        /// <summary>
+        /// 按当前语言填充鼠标方式选项，并同步选中当前配置对应的设备。
+        /// </summary>
+        private void UpdateMouseControlModeOptions()
+        {
+            bool previousUpdatingState = isUpdatingMouseDeviceControls;
+            isUpdatingMouseDeviceControls = true;
+            try
+            {
+                comboBox_鼠标移动方式.Items.Clear();
+                comboBox_鼠标移动方式.Items.Add(_iLocalizationService.Get("SettingForm.Option.WinApi"));
+                comboBox_鼠标移动方式.Items.Add(_iLocalizationService.Get("SettingForm.Option.Makcu"));
+
+                int targetMouseControlModeIndex =
+                    _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu
+                        ? MakcuMouseControlModeIndex
+                        : WinApiMouseControlModeIndex;
+                comboBox_鼠标移动方式.SelectedIndex = targetMouseControlModeIndex;
+            }
+            finally
+            {
+                isUpdatingMouseDeviceControls = previousUpdatingState;
+            }
         }
 
         private void RefreshMakcuPorts()
@@ -408,7 +807,8 @@ namespace JinChanChanTool
                 return;
             }
 
-            _iappConfigService.CurrentConfig.MouseControlMode = comboBox_鼠标移动方式.SelectedIndex == 1
+            _iappConfigService.CurrentConfig.MouseControlMode =
+                comboBox_鼠标移动方式.SelectedIndex == MakcuMouseControlModeIndex
                 ? MouseControlMode.Makcu
                 : MouseControlMode.WinApi;
 
@@ -474,38 +874,114 @@ namespace JinChanChanTool
             }
         }
 
-        private void roundedButton_测试Makcu移动_Click(object? sender, EventArgs e)
+        /// <summary>
+        /// 使用当前选择的鼠标设备执行相对 (30, 30) 测试移动。
+        /// </summary>
+        private void roundedButton_测试鼠标移动_Click(object? sender, EventArgs e)
         {
             UseWaitCursor = true;
-            roundedButton_测试Makcu移动.Enabled = false;
+            roundedButton_测试鼠标移动.Enabled = false;
             try
             {
-                if (MouseControlTool.TryMoveMakcu(
-                        30,
-                        30,
+                if (!TryGetMouseTestTargetPosition(out Point targetPosition, out string targetError))
+                {
+                    ShowMouseTestFailedMessage(targetError);
+                    return;
+                }
+
+                if (!MouseControlTool.TrySetMousePosition(
+                        targetPosition.X,
+                        targetPosition.Y,
                         _iappConfigService.CurrentConfig,
                         out string error))
                 {
-                    SetMakcuStatus(
-                        _iLocalizationService.Get("SettingForm.Status.Makcu测试移动成功"),
-                        Color.ForestGreen);
-                }
-                else
-                {
-                    SetMakcuStatus(error, Color.Firebrick);
-                    MessageBox.Show(
-                        error,
-                        _iLocalizationService.Get("SettingForm.MsgTitle.Makcu测试移动失败"),
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
+                    ShowMouseTestFailedMessage(error);
                 }
             }
             finally
             {
-                roundedButton_测试Makcu移动.Enabled =
-                    _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu;
+                roundedButton_测试鼠标移动.Enabled = true;
                 UseWaitCursor = false;
             }
+        }
+
+        /// <summary>
+        /// 使用当前选择的鼠标设备移动到测试坐标后单击一次左键。
+        /// </summary>
+        private void roundedButton_测试鼠标点击_Click(object? sender, EventArgs e)
+        {
+            UseWaitCursor = true;
+            roundedButton_测试鼠标点击.Enabled = false;
+            // 仅在成功登记程序点击后递减计数，避免移动失败路径破坏全局钩子计数。
+            bool isProgramClickRegistered = false;
+            try
+            {
+                if (!MouseControlTool.TrySetMousePosition(
+                        MouseClickTestTargetCoordinate,
+                        MouseClickTestTargetCoordinate,
+                        _iappConfigService.CurrentConfig,
+                        out string moveError))
+                {
+                    ShowMouseTestFailedMessage(moveError);
+                    return;
+                }
+
+                // 仅将实际点击标记为程序操作，避免全局钩子将测试点击识别为用户输入。
+                MouseHookTool.IncrementProgramClickCount();
+                isProgramClickRegistered = true;
+                if (!MouseControlTool.TryClickLeftButton(
+                        _iappConfigService.CurrentConfig,
+                        out string error))
+                {
+                    ShowMouseTestFailedMessage(error);
+                }
+            }
+            finally
+            {
+                if (isProgramClickRegistered)
+                {
+                    MouseHookTool.DecrementProgramClickCount();
+                }
+                roundedButton_测试鼠标点击.Enabled = true;
+                UseWaitCursor = false;
+            }
+        }
+
+        /// <summary>
+        /// 计算测试移动的目标屏幕坐标，避免边界情况下发生整数溢出。
+        /// </summary>
+        /// <param name="targetPosition">计算得到的目标屏幕坐标。</param>
+        /// <param name="error">坐标不可用时的错误信息。</param>
+        /// <returns>目标坐标是否有效。</returns>
+        private bool TryGetMouseTestTargetPosition(out Point targetPosition, out string error)
+        {
+            Point currentPosition = Cursor.Position;
+            long targetX = (long)currentPosition.X + MouseTestMovementOffset;
+            long targetY = (long)currentPosition.Y + MouseTestMovementOffset;
+            if (targetX < int.MinValue || targetX > int.MaxValue ||
+                targetY < int.MinValue || targetY > int.MaxValue)
+            {
+                targetPosition = Point.Empty;
+                error = "测试移动目标超出屏幕坐标范围。";
+                return false;
+            }
+
+            targetPosition = new Point((int)targetX, (int)targetY);
+            error = string.Empty;
+            return true;
+        }
+
+        /// <summary>
+        /// 显示鼠标测试失败的原生错误消息。
+        /// </summary>
+        /// <param name="error">需要显示的错误信息。</param>
+        private void ShowMouseTestFailedMessage(string error)
+        {
+            MessageBox.Show(
+                error,
+                _iLocalizationService.Get("SettingForm.MsgTitle.鼠标测试失败"),
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
         }
 
         private void UpdateMakcuControlState()
@@ -515,7 +991,6 @@ namespace JinChanChanTool
             comboBox_Makcu波特率.Enabled = useMakcu;
             roundedButton_刷新Makcu串口.Enabled = useMakcu;
             roundedButton_测试Makcu连接.Enabled = useMakcu;
-            roundedButton_测试Makcu移动.Enabled = useMakcu;
 
             if (!useMakcu)
             {
@@ -2455,6 +2930,9 @@ namespace JinChanChanTool
             tabPage_大数据推荐.Text = _iLocalizationService.Get("SettingForm.Tab.大数据推荐");
             tabPage_开发者选项.Text = _iLocalizationService.Get("SettingForm.Tab.开发者选项");
             tabPage_鼠标设备.Text = _iLocalizationService.Get("SettingForm.Tab.鼠标设备");
+            tabPage_鼠标设备_常规.Text = _iLocalizationService.Get("SettingForm.Tab.鼠标设备.常规");
+            tabPage_鼠标设备_WinApi.Text = _iLocalizationService.Get("SettingForm.Tab.鼠标设备.WinApi");
+            tabPage_鼠标设备_Makcu.Text = _iLocalizationService.Get("SettingForm.Tab.鼠标设备.Makcu");
             tabPage_功能_常规.Text = _iLocalizationService.Get("SettingForm.Tab.功能.常规");
             tabPage_功能_自动拿牌.Text = _iLocalizationService.Get("SettingForm.Tab.功能.自动拿牌");
             tabPage_功能_自动刷新商店.Text = _iLocalizationService.Get("SettingForm.Tab.功能.自动刷新商店");
@@ -2481,19 +2959,17 @@ namespace JinChanChanTool
             label_Makcu波特率.Text = _iLocalizationService.Get("SettingForm.Label.Makcu波特率");
             label_Makcu波特率描述.Text = _iLocalizationService.Get("SettingForm.Label.Makcu波特率描述");
             label_Makcu连接状态.Text = _iLocalizationService.Get("SettingForm.Label.Makcu连接状态");
-            label_Makcu测试移动.Text = _iLocalizationService.Get("SettingForm.Label.Makcu测试移动");
-            label_Makcu测试移动描述.Text = _iLocalizationService.Get("SettingForm.Label.Makcu测试移动描述");
+            label_测试鼠标移动.Text = _iLocalizationService.Get("SettingForm.Label.测试鼠标移动");
+            label_测试鼠标移动描述.Text = _iLocalizationService.Get("SettingForm.Label.测试鼠标移动描述");
+            label_测试鼠标点击.Text = _iLocalizationService.Get("SettingForm.Label.测试鼠标点击");
+            label_测试鼠标点击描述.Text = _iLocalizationService.Get("SettingForm.Label.测试鼠标点击描述");
             roundedButton_刷新Makcu串口.Text = _iLocalizationService.Get("SettingForm.Button.刷新串口");
             roundedButton_测试Makcu连接.Text = _iLocalizationService.Get("SettingForm.Button.测试Makcu连接");
-            roundedButton_测试Makcu移动.Text = _iLocalizationService.Get("SettingForm.Button.测试Makcu移动");
+            roundedButton_测试鼠标移动.Text = _iLocalizationService.Get("SettingForm.Button.测试鼠标移动");
+            roundedButton_测试鼠标点击.Text = _iLocalizationService.Get("SettingForm.Button.测试鼠标点击");
 
-            isUpdatingMouseDeviceControls = true;
-            comboBox_鼠标移动方式.Items.Clear();
-            comboBox_鼠标移动方式.Items.Add(_iLocalizationService.Get("SettingForm.Option.WinApi"));
-            comboBox_鼠标移动方式.Items.Add(_iLocalizationService.Get("SettingForm.Option.Makcu"));
-            comboBox_鼠标移动方式.SelectedIndex =
-                _iappConfigService.CurrentConfig.MouseControlMode == MouseControlMode.Makcu ? 1 : 0;
-            isUpdatingMouseDeviceControls = false;
+            // 切换语言后复用统一方法刷新下拉文本，并保持当前设备选择不变。
+            UpdateMouseControlModeOptions();
             UpdateMakcuControlState();
             LayoutMouseDeviceSettings();
 

@@ -12,14 +12,37 @@
 
 
         /// <summary>
-        /// 阵容状态
+        /// 阵容分支总数量上限。
         /// </summary>
-        public SubLineUp[] SubLineUps { get; set; } = [  new SubLineUp(), new SubLineUp(), new SubLineUp() ];
+        public const int MaxSubLineUpCount = 6;
 
         /// <summary>
-        /// 后期阵容的 Flex 分支。每个分支拥有独立的英雄、装备和站位数据。
+        /// 除默认首分支外，最多允许增加的分支数量。
         /// </summary>
-        public List<FlexBranch> FlexBranches { get; set; } = [];
+        public const int MaxAdditionalSubLineUpCount = MaxSubLineUpCount - 1;
+
+        /// <summary>
+        /// 新建阵容的默认首分支名称。
+        /// </summary>
+        public const string DefaultSubLineUpName = "前期";
+
+        /// <summary>
+        /// 删除最后一个分支后创建的空分支名称。
+        /// </summary>
+        public const string UnnamedSubLineUpName = "未命名";
+
+        /// <summary>
+        /// 阵容分支。每个分支拥有独立的英雄、装备和站位数据。
+        /// </summary>
+        public List<SubLineUp> SubLineUps { get; set; } = [new SubLineUp { Name = DefaultSubLineUpName }];
+
+        /// <summary>
+        /// 用于读取旧版 Flex 分支数据。规范化后会迁移到 <see cref="SubLineUps"/>，且不会再次写入文件。
+        /// </summary>
+        [Newtonsoft.Json.JsonProperty("FlexBranches")]
+        public List<FlexBranch> LegacyFlexBranches { get; set; } = [];
+
+        public bool ShouldSerializeLegacyFlexBranches() => false;
       
         /// <summary>
         /// 对阵容命名的构造函数
@@ -37,12 +60,12 @@
     }
 
     /// <summary>
-    /// 后期阵容的 Flex 分支。
+    /// 旧版 Flex 分支数据，仅用于本地阵容文件迁移。
     /// </summary>
     public class FlexBranch
     {
         /// <summary>
-        /// Flex 分支数量上限。
+        /// 旧版 Flex 分支数量上限。
         /// </summary>
         public const int MaxBranchCount = 5;
 
@@ -73,11 +96,29 @@
     }
 
     /// <summary>
-    /// 变阵对象，每个LineUp对象会有一个SubLineUp[]数组，容量为3，每个SubLineUp对象会有一个List<LineUpUnit>列表。
+    /// 阵容分支对象。每个分支都包含独立的英雄、装备和站位数据。
     /// </summary>
     public class SubLineUp
     {
-       
+        /// <summary>
+        /// 分支名称最大长度。
+        /// </summary>
+        public const int MaxNameLength = 20;
+
+        /// <summary>
+        /// 分支玩法说明最大长度。
+        /// </summary>
+        public const int MaxDescriptionLength = 200;
+
+        /// <summary>
+        /// 分支名称。
+        /// </summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>
+        /// 分支玩法说明。
+        /// </summary>
+        public string Description { get; set; } = "";
 
         public List<LineUpUnit> LineUpUnits { get; set; } = [];
       
