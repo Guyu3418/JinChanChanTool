@@ -22,6 +22,11 @@ namespace JinChanChanTool.DIYComponents
         private SubLineUp _currentSubLineUp;
 
         /// <summary>
+        /// 当前备战席容量。
+        /// </summary>
+        public int Capacity => _maxHeroCount;
+
+        /// <summary>
         /// 英雄从备战席拖出事件
         /// </summary>
         public event EventHandler<BenchHeroDraggedOutEventArgs> HeroDraggedOut;

@@ -65,6 +65,7 @@ namespace JinChanChanTool.Forms
         private IEquipmentService _equipmentService; // 装备数据服务对象
         private BoardDragManager _boardDragManager; // 棋盘拖拽管理器（替代 OLE DoDragDrop）
         private ILocalizationService _iLocalizationService; // 本地化服务对象
+        private readonly ContextMenuStrip _flexBranchMenu = new ContextMenuStrip();
 
         private LineUpForm()
         {
@@ -74,6 +75,7 @@ namespace JinChanChanTool.Forms
             DragHelper.EnableDrag(button_清空);
             DragHelper.EnableDrag(button_阵容推荐);
             DragHelper.EnableDrag(button_展开收起);
+            DragHelper.EnableDrag(button_分支);
             
         }
 
@@ -138,6 +140,7 @@ namespace JinChanChanTool.Forms
             button_清空.Text = _iLocalizationService.Get("LineUpForm.Button.清空");
             button_阵容推荐.Text = _iLocalizationService.Get("LineUpForm.Button.阵容推荐");            
             button_展开收起.Text = _iLocalizationService.Get("LineUpForm.Button.站位");
+            button_分支.Text = "分支";
         }
       
         #region 拖动窗体功能        
@@ -262,8 +265,19 @@ namespace JinChanChanTool.Forms
             if (_ilineUpService == null) return;
 
             SubLineUp currentSubLineUp = _ilineUpService.GetCurrentSubLineUp();
+            int requiredBenchCapacity = Math.Max(10, currentSubLineUp.LineUpUnits.Count);
+            if (benchPanel.Capacity != requiredBenchCapacity)
+            {
+                benchPanel.SetCapacity(requiredBenchCapacity);
+                _boardDragManager?.RefreshBindings();
+                if (_isBoardExpanded)
+                {
+                    LayoutExpandedBoard();
+                }
+            }
             hexagonBoard.BindSubLineUp(currentSubLineUp);
             benchPanel.BindSubLineUp(currentSubLineUp);
+            UpdateFlexBranchButton();
 
             // 同步刷新散件面板
             if (_isBoardExpanded && flowLayoutPanel_装备散件展示 != null && flowLayoutPanel_装备散件展示.Visible)
@@ -295,39 +309,7 @@ namespace JinChanChanTool.Forms
                 //hexagonBoard.BackColor = Color.FromArgb(30,35, 45);
                 //benchPanel.BackColor = Color.FromArgb(30, 35, 45);
                 //componentPanel.BackColor = Color.FromArgb(30, 35, 45);
-                // 展开棋盘和备战席
-                int boardHeight = LogicalToDeviceUnits(BOARD_HEIGHT);
-                int benchHeight = LogicalToDeviceUnits(CalculateBenchHeight()); // 使用动态计算
-
-                // 棋盘紧贴 flowLayoutPanel1 底部
-                int boardY = flowLayoutPanel_阵容展示.Location.Y + flowLayoutPanel_阵容展示.Height;
-                // 备战席紧贴棋盘底部
-                int benchY = boardY + boardHeight;
-                // 窗体总高度
-                int expandedHeight = benchY + benchHeight;
-
-                // 计算棋盘和备战席的宽度（面板宽度的3/4）
-                int boardWidth = flowLayoutPanel_阵容展示.Width * 3 / 4;
-
-                // 设置棋盘位置和大小
-                hexagonBoard.Location = new Point(flowLayoutPanel_阵容展示.Location.X, boardY);
-                hexagonBoard.Size = new Size(boardWidth, boardHeight);
-                hexagonBoard.Visible = true;
-
-                // 设置备战席位置和大小
-                benchPanel.Location = new Point(flowLayoutPanel_阵容展示.Location.X, benchY);
-                benchPanel.Size = new Size(boardWidth, benchHeight);
-                benchPanel.Visible = true;
-
-                // 设置散件面板位置和大小（右侧1/4宽度区域）
-                int componentPanelX = flowLayoutPanel_阵容展示.Location.X + boardWidth;
-                int componentPanelWidth = flowLayoutPanel_阵容展示.Width - boardWidth;
-                int componentPanelHeight = boardHeight + benchHeight;
-                flowLayoutPanel_装备散件展示.Location = new Point(componentPanelX, boardY);
-                flowLayoutPanel_装备散件展示.Size = new Size(componentPanelWidth, componentPanelHeight);
-                flowLayoutPanel_装备散件展示.Visible = true;
-
-                this.ClientSize = new Size(LogicalToDeviceUnits(632), expandedHeight);
+                LayoutExpandedBoard();
 
                 button_展开收起.BackColor = Color.FromArgb(130, 189, 39);
 
@@ -360,6 +342,79 @@ namespace JinChanChanTool.Forms
         {
             // 刷新棋盘显示
             RefreshHexagonBoard();
+        }
+
+        private void LayoutExpandedBoard()
+        {
+            int boardHeight = LogicalToDeviceUnits(BOARD_HEIGHT);
+            int benchHeight = LogicalToDeviceUnits(CalculateBenchHeight());
+            int boardY = flowLayoutPanel_阵容展示.Location.Y + flowLayoutPanel_阵容展示.Height;
+            int benchY = boardY + boardHeight;
+            int expandedHeight = benchY + benchHeight;
+            int boardWidth = flowLayoutPanel_阵容展示.Width * 3 / 4;
+
+            hexagonBoard.Location = new Point(flowLayoutPanel_阵容展示.Location.X, boardY);
+            hexagonBoard.Size = new Size(boardWidth, boardHeight);
+            hexagonBoard.Visible = true;
+
+            benchPanel.Location = new Point(flowLayoutPanel_阵容展示.Location.X, benchY);
+            benchPanel.Size = new Size(boardWidth, benchHeight);
+            benchPanel.Visible = true;
+
+            int componentPanelX = flowLayoutPanel_阵容展示.Location.X + boardWidth;
+            int componentPanelWidth = flowLayoutPanel_阵容展示.Width - boardWidth;
+            flowLayoutPanel_装备散件展示.Location = new Point(componentPanelX, boardY);
+            flowLayoutPanel_装备散件展示.Size = new Size(componentPanelWidth, boardHeight + benchHeight);
+            flowLayoutPanel_装备散件展示.Visible = true;
+
+            this.ClientSize = new Size(LogicalToDeviceUnits(632), expandedHeight);
+        }
+
+        private void button_分支_Click(object sender, EventArgs e)
+        {
+            if (_ilineUpService == null)
+            {
+                return;
+            }
+
+            _flexBranchMenu.Items.Clear();
+            ToolStripMenuItem mainLineUpItem = new ToolStripMenuItem("主后期阵容");
+            mainLineUpItem.Click += (_, _) => _ilineUpService.SetFlexBranchIndex(-1);
+            _flexBranchMenu.Items.Add(mainLineUpItem);
+
+            IReadOnlyList<FlexBranch> flexBranches = _ilineUpService.GetFlexBranches();
+            if (flexBranches.Count > 0)
+            {
+                _flexBranchMenu.Items.Add(new ToolStripSeparator());
+            }
+
+            for (int i = 0; i < flexBranches.Count; i++)
+            {
+                int branchIndex = i;
+                FlexBranch flexBranch = flexBranches[i];
+                ToolStripMenuItem branchItem = new ToolStripMenuItem(flexBranch.Name)
+                {
+                    ToolTipText = flexBranch.Description
+                };
+                branchItem.Click += (_, _) => _ilineUpService.SetFlexBranchIndex(branchIndex);
+                _flexBranchMenu.Items.Add(branchItem);
+            }
+
+            _flexBranchMenu.Show(button_分支, new Point(0, button_分支.Height));
+        }
+
+        private void UpdateFlexBranchButton()
+        {
+            if (_ilineUpService == null)
+            {
+                return;
+            }
+
+            FlexBranch selectedBranch = _ilineUpService.GetCurrentFlexBranch();
+            button_分支.Enabled = _ilineUpService.GetFlexBranches().Count > 0 || selectedBranch != null;
+            button_分支.BackColor = selectedBranch == null
+                ? Color.FromArgb(45, 45, 48)
+                : Color.FromArgb(130, 189, 39);
         }
         #endregion
 

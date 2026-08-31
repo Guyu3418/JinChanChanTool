@@ -100,6 +100,15 @@ namespace JinChanChanTool
         /// </summary>
         private EquipmentInformationToolTip _lineUpFormEquipmentToolTip;
 
+        // 后期 Flex 分支编辑器在运行时添加，避免改动主窗体的固定设计器布局。
+        private Panel _flexBranchPanel;
+        private ComboBox _flexBranchComboBox;
+        private TextBox _flexBranchNameTextBox;
+        private TextBox _flexBranchDescriptionTextBox;
+        private Button _addFlexBranchButton;
+        private Button _deleteFlexBranchButton;
+        private bool _isUpdatingFlexBranchEditor;
+
         public MainForm(IManualSettingsService iManualSettingsService, IAutomaticSettingsService iAutomaticSettingsService, ILocalizationService iLocalizationService, IHeroDataService iheroDataService, IEquipmentService iEquipmentService, ICorrectionService iCorrectionService, ILineUpService iLineUpService, IHeroEquipmentDataService iHeroEquipmentDataService, IRecommendedLineUpService iRecommendedLineUpService, ILineUpParser iLineUpParser, IAutoUpdateService iAutoUpdateService)
         {
             InitializeComponent();
@@ -160,6 +169,8 @@ namespace JinChanChanTool
             _uiBuilderService = new UIBuilderService(_iheroDataService, _iManualSettingsService, _iLocalizationService, this, tabControl_英雄选择容器, flowLayoutPanel_子阵容展示, LineUpForm.Instance.flowLayoutPanel_阵容展示, _iLineUpService.GetMaxSelect());
             _uiBuilderService.FirstBuilding();
             FirstBinding();
+            _uiBuilderService.LineUpHeroAndEquipmentPictureBoxCreated += UIBuilderService_LineUpHeroAndEquipmentPictureBoxCreated;
+            InitializeFlexBranchEditor();
             #endregion
 
             #region 游戏窗口捕获服务对象实例化并绑定事件
@@ -578,15 +589,7 @@ namespace JinChanChanTool
 
             for (int i = 0; i < _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes.Count; i++)
             {
-                _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].heroPictureBox.MouseUp += HeroAndEquipmentPictureBox_Hero_MouseUp;
-                _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox1.MouseUp += HeroAndEquipmentPictureBox_Equipment_MouseUp;
-                _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox2.MouseUp += HeroAndEquipmentPictureBox_Equipment_MouseUp;
-                _uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox3.MouseUp += HeroAndEquipmentPictureBox_Equipment_MouseUp;
-
-                // 为主窗口装备图片框设置ToolTip
-                _equipmentToolTip.SetEquipment(_uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox1);
-                _equipmentToolTip.SetEquipment(_uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox2);
-                _equipmentToolTip.SetEquipment(_uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox3);
+                BindMainFormHeroAndEquipmentPictureBox(_uiBuilderService.MainForm_HeroAndEquipmentPictureBoxes[i]);
             }
 
             #endregion
@@ -606,18 +609,7 @@ namespace JinChanChanTool
             #region 阵容窗口UI事件
             for (int i = 0; i < _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes.Count; i++)
             {
-                _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].heroPictureBox.MouseUp += HeroAndEquipmentPictureBox_Hero_MouseUp;
-                _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox1.MouseUp += LineUpFormEquipmentPictureBox_MouseUp;
-                _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox2.MouseUp += LineUpFormEquipmentPictureBox_MouseUp;
-                _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox3.MouseUp += LineUpFormEquipmentPictureBox_MouseUp;
-
-                // 使用新的 BindFormDrag 方法简化拖动绑定
-                _uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].BindFormDrag(LineUpForm.Instance.绑定拖动);
-
-                // 为LineUpForm窗口装备图片框设置独立的ToolTip
-                _lineUpFormEquipmentToolTip.SetEquipment(_uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox1);
-                _lineUpFormEquipmentToolTip.SetEquipment(_uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox2);
-                _lineUpFormEquipmentToolTip.SetEquipment(_uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i].equipmentPictureBox3);
+                BindLineUpFormHeroAndEquipmentPictureBox(_uiBuilderService.LineUpForm_HeroAndEquipmentPictureBoxes[i]);
             }
 
 
@@ -630,6 +622,43 @@ namespace JinChanChanTool
             LineUpForm.Instance.GetLineUpSelectedComboBox().Leave += comboBox_LineUps_Leave;
             LineUpForm.Instance.GetLineUpSelectedComboBox().KeyDown += comboBox_LineUps_KeyDown;
             #endregion
+        }
+
+        private void BindMainFormHeroAndEquipmentPictureBox(HeroAndEquipmentPictureBox pictureBox)
+        {
+            pictureBox.heroPictureBox.MouseUp += HeroAndEquipmentPictureBox_Hero_MouseUp;
+            pictureBox.equipmentPictureBox1.MouseUp += HeroAndEquipmentPictureBox_Equipment_MouseUp;
+            pictureBox.equipmentPictureBox2.MouseUp += HeroAndEquipmentPictureBox_Equipment_MouseUp;
+            pictureBox.equipmentPictureBox3.MouseUp += HeroAndEquipmentPictureBox_Equipment_MouseUp;
+
+            _equipmentToolTip.SetEquipment(pictureBox.equipmentPictureBox1);
+            _equipmentToolTip.SetEquipment(pictureBox.equipmentPictureBox2);
+            _equipmentToolTip.SetEquipment(pictureBox.equipmentPictureBox3);
+        }
+
+        private void BindLineUpFormHeroAndEquipmentPictureBox(HeroAndEquipmentPictureBox pictureBox)
+        {
+            pictureBox.heroPictureBox.MouseUp += HeroAndEquipmentPictureBox_Hero_MouseUp;
+            pictureBox.equipmentPictureBox1.MouseUp += LineUpFormEquipmentPictureBox_MouseUp;
+            pictureBox.equipmentPictureBox2.MouseUp += LineUpFormEquipmentPictureBox_MouseUp;
+            pictureBox.equipmentPictureBox3.MouseUp += LineUpFormEquipmentPictureBox_MouseUp;
+            pictureBox.BindFormDrag(LineUpForm.Instance.绑定拖动);
+
+            _lineUpFormEquipmentToolTip.SetEquipment(pictureBox.equipmentPictureBox1);
+            _lineUpFormEquipmentToolTip.SetEquipment(pictureBox.equipmentPictureBox2);
+            _lineUpFormEquipmentToolTip.SetEquipment(pictureBox.equipmentPictureBox3);
+        }
+
+        private void UIBuilderService_LineUpHeroAndEquipmentPictureBoxCreated(HeroAndEquipmentPictureBox pictureBox, bool isLineUpForm)
+        {
+            if (isLineUpForm)
+            {
+                BindLineUpFormHeroAndEquipmentPictureBox(pictureBox);
+            }
+            else
+            {
+                BindMainFormHeroAndEquipmentPictureBox(pictureBox);
+            }
         }
 
 
@@ -1548,6 +1577,166 @@ namespace JinChanChanTool
         }
         #endregion
 
+        #region Flex分支交互
+        private void InitializeFlexBranchEditor()
+        {
+            _flexBranchPanel = new Panel
+            {
+                BackColor = Color.FromArgb(245, 245, 245),
+                Location = new Point(5, 28),
+                Size = new Size(384, 78),
+                Visible = false
+            };
+
+            _flexBranchComboBox = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(0, 0),
+                Size = new Size(150, 25)
+            };
+            _flexBranchComboBox.SelectedIndexChanged += FlexBranchComboBox_SelectedIndexChanged;
+
+            _addFlexBranchButton = new Button
+            {
+                FlatStyle = FlatStyle.Flat,
+                Location = new Point(154, 0),
+                Size = new Size(28, 25),
+                Text = "+",
+                UseVisualStyleBackColor = true
+            };
+            _addFlexBranchButton.Click += AddFlexBranchButton_Click;
+
+            _deleteFlexBranchButton = new Button
+            {
+                FlatStyle = FlatStyle.Flat,
+                Location = new Point(186, 0),
+                Size = new Size(28, 25),
+                Text = "x",
+                UseVisualStyleBackColor = true
+            };
+            _deleteFlexBranchButton.Click += DeleteFlexBranchButton_Click;
+
+            _flexBranchNameTextBox = new TextBox
+            {
+                Location = new Point(0, 28),
+                MaxLength = FlexBranch.MaxNameLength,
+                PlaceholderText = "分支名称",
+                Size = new Size(214, 25)
+            };
+            _flexBranchNameTextBox.TextChanged += FlexBranchMetadataTextBox_TextChanged;
+
+            _flexBranchDescriptionTextBox = new TextBox
+            {
+                Location = new Point(0, 54),
+                MaxLength = FlexBranch.MaxDescriptionLength,
+                PlaceholderText = "玩法说明",
+                Size = new Size(384, 24)
+            };
+            _flexBranchDescriptionTextBox.TextChanged += FlexBranchMetadataTextBox_TextChanged;
+
+            _flexBranchPanel.Controls.Add(_flexBranchComboBox);
+            _flexBranchPanel.Controls.Add(_addFlexBranchButton);
+            _flexBranchPanel.Controls.Add(_deleteFlexBranchButton);
+            _flexBranchPanel.Controls.Add(_flexBranchNameTextBox);
+            _flexBranchPanel.Controls.Add(_flexBranchDescriptionTextBox);
+            panel_子阵容展示区背景.Controls.Add(_flexBranchPanel);
+            _flexBranchPanel.BringToFront();
+        }
+
+        private void UpdateFlexBranchEditor(int selectedSubLineUpIndex)
+        {
+            if (_flexBranchPanel == null)
+            {
+                return;
+            }
+
+            bool isLateGame = selectedSubLineUpIndex == 2;
+            _flexBranchPanel.Visible = isLateGame;
+            flowLayoutPanel_子阵容展示.Location = new Point(
+                LogicalToDeviceUnits(5),
+                LogicalToDeviceUnits(isLateGame ? 108 : 28));
+            flowLayoutPanel_子阵容展示.Size = LogicalToDeviceUnits(new Size(384, isLateGame ? 166 : 152));
+            panel_子阵容展示区背景.Size = LogicalToDeviceUnits(new Size(394, isLateGame ? 279 : 185));
+            panel_用户区背景.Size = LogicalToDeviceUnits(new Size(404, isLateGame ? 727 : 633));
+            ClientSize = LogicalToDeviceUnits(new Size(410, isLateGame ? 764 : 670));
+
+            if (!isLateGame)
+            {
+                return;
+            }
+
+            _isUpdatingFlexBranchEditor = true;
+            try
+            {
+                IReadOnlyList<FlexBranch> flexBranches = _iLineUpService.GetFlexBranches();
+                int selectedBranchIndex = _iLineUpService.GetFlexBranchIndex();
+
+                _flexBranchComboBox.Items.Clear();
+                _flexBranchComboBox.Items.Add("主后期阵容");
+                foreach (FlexBranch flexBranch in flexBranches)
+                {
+                    _flexBranchComboBox.Items.Add(flexBranch.Name);
+                }
+                _flexBranchComboBox.SelectedIndex = selectedBranchIndex + 1;
+
+                FlexBranch currentFlexBranch = _iLineUpService.GetCurrentFlexBranch();
+                bool isEditingBranch = currentFlexBranch != null;
+                _flexBranchNameTextBox.Enabled = isEditingBranch;
+                _flexBranchDescriptionTextBox.Enabled = isEditingBranch;
+                _deleteFlexBranchButton.Enabled = isEditingBranch;
+                _addFlexBranchButton.Enabled = flexBranches.Count < FlexBranch.MaxBranchCount;
+                _flexBranchNameTextBox.Text = currentFlexBranch?.Name ?? string.Empty;
+                _flexBranchDescriptionTextBox.Text = currentFlexBranch?.Description ?? string.Empty;
+            }
+            finally
+            {
+                _isUpdatingFlexBranchEditor = false;
+            }
+        }
+
+        private void FlexBranchComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_isUpdatingFlexBranchEditor || _flexBranchComboBox.SelectedIndex < 0)
+            {
+                return;
+            }
+
+            _iLineUpService.SetFlexBranchIndex(_flexBranchComboBox.SelectedIndex - 1);
+        }
+
+        private void AddFlexBranchButton_Click(object sender, EventArgs e)
+        {
+            int nextIndex = _iLineUpService.GetFlexBranches().Count + 1;
+            _iLineUpService.AddFlexBranch($"Flex 分支 {nextIndex}");
+        }
+
+        private void DeleteFlexBranchButton_Click(object sender, EventArgs e)
+        {
+            int branchIndex = _iLineUpService.GetFlexBranchIndex();
+            if (branchIndex >= 0)
+            {
+                _iLineUpService.DeleteFlexBranch(branchIndex);
+            }
+        }
+
+        private void FlexBranchMetadataTextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (_isUpdatingFlexBranchEditor || _iLineUpService.GetFlexBranchIndex() < 0)
+            {
+                return;
+            }
+
+            if (_iLineUpService.UpdateCurrentFlexBranch(_flexBranchNameTextBox.Text, _flexBranchDescriptionTextBox.Text))
+            {
+                int selectedItemIndex = _flexBranchComboBox.SelectedIndex;
+                if (selectedItemIndex > 0)
+                {
+                    _flexBranchComboBox.Items[selectedItemIndex] = _flexBranchNameTextBox.Text.Trim();
+                }
+            }
+        }
+        #endregion
+
         #region 变阵按钮交互
         /// <summary>
         /// 变阵按钮1按下
@@ -1596,6 +1785,8 @@ namespace JinChanChanTool
             LineUp currentLineUp = _iLineUpService.GetCurrentLineUp();
             int subLineUpIndex = _iLineUpService.GetSubLineUpIndex();
 
+            _uiBuilderService.EnsureLineUpHeroAndEquipmentPictureBoxCapacity(units.Count);
+
             // 获取所有英雄和装备数据
             var heroDataList = units.Select(unit => new
             {
@@ -1614,6 +1805,7 @@ namespace JinChanChanTool
             UpdateHeroAndEquipmentPictureBoxes(heroDataList);
             UpdateSelectFormHeroPictureBoxes(currentSubLineUp);
             UpdateSubLineUpButtons(subLineUpIndex, currentLineUp);
+            UpdateFlexBranchEditor(subLineUpIndex);
 
             waitForLoad = false;
 

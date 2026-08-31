@@ -15,6 +15,11 @@
         /// 阵容状态
         /// </summary>
         public SubLineUp[] SubLineUps { get; set; } = [  new SubLineUp(), new SubLineUp(), new SubLineUp() ];
+
+        /// <summary>
+        /// 后期阵容的 Flex 分支。每个分支拥有独立的英雄、装备和站位数据。
+        /// </summary>
+        public List<FlexBranch> FlexBranches { get; set; } = [];
       
         /// <summary>
         /// 对阵容命名的构造函数
@@ -29,6 +34,42 @@
         { 
 
         }
+    }
+
+    /// <summary>
+    /// 后期阵容的 Flex 分支。
+    /// </summary>
+    public class FlexBranch
+    {
+        /// <summary>
+        /// Flex 分支数量上限。
+        /// </summary>
+        public const int MaxBranchCount = 5;
+
+        /// <summary>
+        /// 分支名称最大长度。
+        /// </summary>
+        public const int MaxNameLength = 20;
+
+        /// <summary>
+        /// 分支玩法说明最大长度。
+        /// </summary>
+        public const int MaxDescriptionLength = 200;
+
+        /// <summary>
+        /// 分支名称。
+        /// </summary>
+        public string Name { get; set; } = "Flex 分支";
+
+        /// <summary>
+        /// 简短的玩法说明。
+        /// </summary>
+        public string Description { get; set; } = "";
+
+        /// <summary>
+        /// 分支阵容和独立站位。
+        /// </summary>
+        public SubLineUp SubLineUp { get; set; } = new SubLineUp();
     }
 
     /// <summary>
@@ -140,6 +181,11 @@
         public string HeroName { get; set; } = "";
         public string[] EquipmentNames { get; set; } = ["", "", ""];
         public (int, int) Position { get; set; } = (0, 0);
+
+        /// <summary>
+        /// 最近一次放入站位的顺序。数值越大，在同一格中的显示层级越靠上。
+        /// </summary>
+        public long PositionLayer { get; set; }
         public LineUpUnit(string heroName,string equipmentName1, string equipmentName2, string equipmentName3)
         {
             HeroName=heroName;

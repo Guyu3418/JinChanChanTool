@@ -135,6 +135,41 @@ namespace JinChanChanTool.Services.DataServices.Interface
         int GetSubLineUpIndex();
 
         /// <summary>
+        /// 获取当前阵容的所有 Flex 分支。
+        /// </summary>
+        IReadOnlyList<FlexBranch> GetFlexBranches();
+
+        /// <summary>
+        /// 获取当前选中的 Flex 分支；当前显示主后期阵容时返回 null。
+        /// </summary>
+        FlexBranch GetCurrentFlexBranch();
+
+        /// <summary>
+        /// 设置当前 Flex 分支下标。传入 -1 表示主后期阵容。
+        /// </summary>
+        bool SetFlexBranchIndex(int index);
+
+        /// <summary>
+        /// 获取当前 Flex 分支下标；-1 表示主后期阵容。
+        /// </summary>
+        int GetFlexBranchIndex();
+
+        /// <summary>
+        /// 基于当前后期阵容创建一个 Flex 分支。
+        /// </summary>
+        bool AddFlexBranch(string name);
+
+        /// <summary>
+        /// 删除指定 Flex 分支。
+        /// </summary>
+        bool DeleteFlexBranch(int index);
+
+        /// <summary>
+        /// 更新当前 Flex 分支的名称和玩法说明。
+        /// </summary>
+        bool UpdateCurrentFlexBranch(string name, string description);
+
+        /// <summary>
         /// 设置指定下标阵容名称
         /// </summary>
         /// <param name="index"></param>

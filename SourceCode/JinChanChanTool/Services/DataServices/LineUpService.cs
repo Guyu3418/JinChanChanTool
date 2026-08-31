@@ -12,6 +12,8 @@ namespace JinChanChanTool.Services.DataServices
 {
     public class LineUpService : ILineUpService
     {
+        private const int MaxLineUpHeroCount = 20;
+
         /// <summary>
         /// 文件路径列表
         /// </summary>
@@ -36,6 +38,11 @@ namespace JinChanChanTool.Services.DataServices
         /// 变阵索引
         /// </summary>
         private int 变阵索引;
+
+        /// <summary>
+        /// 当前 Flex 分支下标；-1 表示当前显示主后期阵容。
+        /// </summary>
+        private int _flexBranchIndex;
 
         /// <summary>
         /// 英雄数据服务对象
@@ -74,10 +81,11 @@ namespace JinChanChanTool.Services.DataServices
             _iHeroDataService = iHeroDataService;
             _iManualSettingsService = iManualSettingsService;
             _iLocalizationService = iLocalizationService;
-            _maxOfChoice = maxOfChoice;
+            _maxOfChoice = Math.Clamp(maxOfChoice, 10, MaxLineUpHeroCount);
             InitializePaths();
             _pathIndex = 0;
             变阵索引 = 0;
+            _flexBranchIndex = -1;
             _lineUpIndex = lineUpIndex;
             _lineUps = new List<LineUp>();
         }
@@ -158,6 +166,7 @@ namespace JinChanChanTool.Services.DataServices
         {
             _iHeroDataService = heroDataService;
             变阵索引 = 0;
+            _flexBranchIndex = -1;
             _lineUpIndex = 0;
             _lineUps = new List<LineUp>();
             LoadFromFile();
@@ -234,14 +243,14 @@ namespace JinChanChanTool.Services.DataServices
             }
             else
             {
-                if (GetCurrentSubLineUp().LineUpUnits.Count < _maxOfChoice)
+                if (GetCurrentSubLineUp().LineUpUnits.Count >= _maxOfChoice)
                 {
-                    GetCurrentSubLineUp().Add(name, equipments);
-                    OrderCurrentSubLineUp();
-                    NotifyLineUpChanged();
-                    return true;
+                    return false;
                 }
-                return false;
+                GetCurrentSubLineUp().Add(name, equipments);
+                OrderCurrentSubLineUp();
+                NotifyLineUpChanged();
+                return true;
             }
         }
 
@@ -258,17 +267,14 @@ namespace JinChanChanTool.Services.DataServices
             }
             else
             {
-                if (GetCurrentSubLineUp().LineUpUnits.Count < _maxOfChoice)
-                {
-                    GetCurrentSubLineUp().Add(name, equipments);
-                    OrderCurrentSubLineUp();
-                    NotifyLineUpChanged();
-                    return true;
-                }
-                else
+                if (GetCurrentSubLineUp().LineUpUnits.Count >= _maxOfChoice)
                 {
                     return false;
                 }
+                GetCurrentSubLineUp().Add(name, equipments);
+                OrderCurrentSubLineUp();
+                NotifyLineUpChanged();
+                return true;
             }
         }
 
@@ -285,17 +291,14 @@ namespace JinChanChanTool.Services.DataServices
             }
             else
             {
-                if (GetCurrentSubLineUp().LineUpUnits.Count < _maxOfChoice)
-                {
-                    GetCurrentSubLineUp().Add(name);
-                    OrderCurrentSubLineUp();
-                    NotifyLineUpChanged();
-                    return true;
-                }
-                else
+                if (GetCurrentSubLineUp().LineUpUnits.Count >= _maxOfChoice)
                 {
                     return false;
                 }
+                GetCurrentSubLineUp().Add(name);
+                OrderCurrentSubLineUp();
+                NotifyLineUpChanged();
+                return true;
             }
         }
 
@@ -323,7 +326,7 @@ namespace JinChanChanTool.Services.DataServices
         /// </summary>
         public void ClearCurrentSubLineUp()
         {
-            _lineUps[_lineUpIndex].SubLineUps[变阵索引].LineUpUnits.Clear();
+            GetCurrentSubLineUp().LineUpUnits.Clear();
             NotifyLineUpChanged();
         }
 
@@ -339,12 +342,11 @@ namespace JinChanChanTool.Services.DataServices
                 return false;
             }
 
-            // 清空当前子阵容
-            _lineUps[_lineUpIndex].SubLineUps[变阵索引].LineUpUnits.Clear();
+            SubLineUp currentSubLineUp = GetCurrentSubLineUp();
+            currentSubLineUp.LineUpUnits.Clear();
 
-            // 添加新的英雄单位（限制最大数量）
-            int count = Math.Min(lineUpUnits.Count, _maxOfChoice);
-            for (int i = 0; i < count; i++)
+            // 添加新的英雄单位，最多保留 20 名。
+            for (int i = 0; i < Math.Min(lineUpUnits.Count, _maxOfChoice); i++)
             {
                 var unit = lineUpUnits[i];
                 // 验证英雄是否存在
@@ -355,9 +357,10 @@ namespace JinChanChanTool.Services.DataServices
                     {
                         HeroName = unit.HeroName,
                         EquipmentNames = unit.EquipmentNames?.ToArray() ?? ["", "", ""],
-                        Position = unit.Position
+                        Position = unit.Position,
+                        PositionLayer = unit.PositionLayer
                     };
-                    _lineUps[_lineUpIndex].SubLineUps[变阵索引].LineUpUnits.Add(newUnit);
+                    currentSubLineUp.LineUpUnits.Add(newUnit);
                 }
             }
 
@@ -408,6 +411,14 @@ namespace JinChanChanTool.Services.DataServices
         /// <returns></returns>
         public SubLineUp GetCurrentSubLineUp()
         {
+            if (_flexBranchIndex >= 0)
+            {
+                FlexBranch flexBranch = GetCurrentFlexBranch();
+                if (flexBranch != null)
+                {
+                    return flexBranch.SubLineUp;
+                }
+            }
             return _lineUps[_lineUpIndex].SubLineUps[变阵索引];
         }
 
@@ -421,6 +432,7 @@ namespace JinChanChanTool.Services.DataServices
             {
                 _lineUpIndex = lineUpIndex;
                 变阵索引 = 0;
+                _flexBranchIndex = -1;
 
                 return true;
             }
@@ -446,6 +458,7 @@ namespace JinChanChanTool.Services.DataServices
             if (index >= 0 && index < 3)
             {
                 变阵索引 = index;
+                _flexBranchIndex = -1;
                 NotifyLineUpChanged();
                 return true;
             }
@@ -459,6 +472,119 @@ namespace JinChanChanTool.Services.DataServices
         public int GetSubLineUpIndex()
         {
             return 变阵索引;
+        }
+
+        /// <summary>
+        /// 获取当前阵容的 Flex 分支。
+        /// </summary>
+        public IReadOnlyList<FlexBranch> GetFlexBranches()
+        {
+            return GetCurrentLineUp().FlexBranches;
+        }
+
+        /// <summary>
+        /// 获取当前选中的 Flex 分支。
+        /// </summary>
+        public FlexBranch GetCurrentFlexBranch()
+        {
+            List<FlexBranch> flexBranches = GetCurrentLineUp().FlexBranches;
+            if (_flexBranchIndex < 0 || _flexBranchIndex >= flexBranches.Count)
+            {
+                return null;
+            }
+            return flexBranches[_flexBranchIndex];
+        }
+
+        /// <summary>
+        /// 切换当前 Flex 分支。-1 代表主后期阵容。
+        /// </summary>
+        public bool SetFlexBranchIndex(int index)
+        {
+            List<FlexBranch> flexBranches = GetCurrentLineUp().FlexBranches;
+            if (index < -1 || index >= flexBranches.Count)
+            {
+                return false;
+            }
+
+            变阵索引 = 2;
+            _flexBranchIndex = index;
+            NotifyLineUpChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// 获取当前 Flex 分支下标。
+        /// </summary>
+        public int GetFlexBranchIndex()
+        {
+            return _flexBranchIndex;
+        }
+
+        /// <summary>
+        /// 从当前后期阵容复制出一个新的 Flex 分支。
+        /// </summary>
+        public bool AddFlexBranch(string name)
+        {
+            LineUp currentLineUp = GetCurrentLineUp();
+            if (currentLineUp.FlexBranches.Count >= FlexBranch.MaxBranchCount)
+            {
+                return false;
+            }
+
+            string branchName = NormalizeFlexBranchName(name);
+            if (string.IsNullOrWhiteSpace(branchName))
+            {
+                branchName = $"Flex 分支 {currentLineUp.FlexBranches.Count + 1}";
+            }
+
+            currentLineUp.FlexBranches.Add(new FlexBranch
+            {
+                Name = branchName,
+                SubLineUp = CloneSubLineUp(currentLineUp.SubLineUps[2])
+            });
+            _flexBranchIndex = currentLineUp.FlexBranches.Count - 1;
+            变阵索引 = 2;
+            NotifyLineUpChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// 删除指定 Flex 分支。
+        /// </summary>
+        public bool DeleteFlexBranch(int index)
+        {
+            List<FlexBranch> flexBranches = GetCurrentLineUp().FlexBranches;
+            if (index < 0 || index >= flexBranches.Count)
+            {
+                return false;
+            }
+
+            flexBranches.RemoveAt(index);
+            _flexBranchIndex = -1;
+            变阵索引 = 2;
+            NotifyLineUpChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// 更新当前 Flex 分支的元数据。
+        /// </summary>
+        public bool UpdateCurrentFlexBranch(string name, string description)
+        {
+            FlexBranch flexBranch = GetCurrentFlexBranch();
+            string branchName = NormalizeFlexBranchName(name);
+            if (flexBranch == null || string.IsNullOrWhiteSpace(branchName))
+            {
+                return false;
+            }
+
+            flexBranch.Name = branchName;
+            flexBranch.Description = (description ?? string.Empty).Trim();
+            if (flexBranch.Description.Length > FlexBranch.MaxDescriptionLength)
+            {
+                flexBranch.Description = flexBranch.Description[..FlexBranch.MaxDescriptionLength];
+            }
+            return true;
         }
 
         /// <summary>
@@ -585,7 +711,7 @@ namespace JinChanChanTool.Services.DataServices
                     }
 
 
-                    List<LineUp> temp = JsonConvert.DeserializeObject<List<LineUp>>(json);                    
+                    List<LineUp> temp = JsonConvert.DeserializeObject<List<LineUp>>(json);
                     if (temp.Count == 0)
                     {
                         int i = 1;
@@ -595,6 +721,10 @@ namespace JinChanChanTool.Services.DataServices
                         }
                         temp.Add(new LineUp($"阵容{i}"));
                     }
+                    foreach (LineUp lineUp in temp)
+                    {
+                        NormalizeLineUp(lineUp);
+                    }
                     _lineUps.AddRange(temp);
                     RemoveDuplicateLineUps();
                    
@@ -602,9 +732,9 @@ namespace JinChanChanTool.Services.DataServices
                     //检查阵容数据是否与英雄数据冲突
                     foreach (LineUp lineUp in _lineUps)
                     {
-                        for (int i = 0; i < lineUp.SubLineUps.Length; i++)
+                        foreach (SubLineUp subLineUp in GetAllSubLineUps(lineUp))
                         {
-                            foreach (LineUpUnit sUnit in lineUp.SubLineUps[i].LineUpUnits)
+                            foreach (LineUpUnit sUnit in subLineUp.LineUpUnits)
                             {
                                 if (_iHeroDataService.GetHeroFromName(sUnit.HeroName) == null)
                                 {
@@ -625,85 +755,9 @@ namespace JinChanChanTool.Services.DataServices
                     //将阵容按照Cost排序
                     foreach (LineUp lineUp in _lineUps)
                     {
-                        for (int i = 0; i < lineUp.SubLineUps.Length; i++)
+                        foreach (SubLineUp subLineUp in GetAllSubLineUps(lineUp))
                         {
-                            List<LineUpUnit> newList = lineUp.SubLineUps[i].LineUpUnits.OrderBy(unit => _iHeroDataService.GetHeroFromName(unit.HeroName).Cost).ToList();
-                            lineUp.SubLineUps[i].LineUpUnits.Clear();
-                            lineUp.SubLineUps[i].LineUpUnits.AddRange(newList);
-                        }
-
-                    }
-
-                    //只保存设置中设置的最大选择英雄个数
-                    bool hasOverCapacity = false;
-                    int maxHeroCount = 0;
-                    string overCapacityLineUpName = "";
-
-                    // 先检查是否有超容量的阵容
-                    foreach (LineUp lineUp in _lineUps)
-                    {
-                        for (int i = 0; i < lineUp.SubLineUps.Length; i++)
-                        {
-                            if (lineUp.SubLineUps[i].LineUpUnits.Count > _maxOfChoice)
-                            {
-                                hasOverCapacity = true;
-                                maxHeroCount = Math.Max(maxHeroCount, lineUp.SubLineUps[i].LineUpUnits.Count);
-                                overCapacityLineUpName = lineUp.LineUpName;
-                                break;
-                            }
-                        }
-                        if (hasOverCapacity) break;
-                    }
-
-                    // 如果有超容量的阵容，弹窗询问用户
-                    if (hasOverCapacity)
-                    {
-                        var result = MessageBox.Show(
-                            _iLocalizationService.Get("LineUpService.Msg.容量冲突", overCapacityLineUpName, maxHeroCount, _maxOfChoice),
-                            _iLocalizationService.Get("LineUpService.MsgTitle.容量不足"),
-                            MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Warning,
-                            MessageBoxDefaultButton.Button2
-                        );
-
-                        if (result == DialogResult.No)
-                        {
-                            // 用户选择不截断，自动修改容量设置并重启
-                            try
-                            {
-                                // 使用服务修改配置
-                                _iManualSettingsService.CurrentConfig.LineUpCapacity = maxHeroCount;
-                                _iManualSettingsService.Save(true); // true表示手动保存
-
-                                // 直接重启程序
-                                System.Diagnostics.Process.Start(Application.ExecutablePath);
-                                Environment.Exit(0);
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show(
-                                    _iLocalizationService.Get("LineUpService.Msg.修改失败", ex.Message, maxHeroCount),
-                                    _iLocalizationService.Get("LineUpService.MsgTitle.修改失败"),
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error
-                                );
-                                Environment.Exit(0);
-                            }
-                            return;
-                        }
-
-                        // 用户选择截断，执行截断操作
-                        foreach (LineUp lineUp in _lineUps)
-                        {
-                            for (int i = 0; i < lineUp.SubLineUps.Length; i++)
-                            {
-                                if (lineUp.SubLineUps[i].LineUpUnits.Count > _maxOfChoice)
-                                {
-                                    List<LineUpUnit> newList = lineUp.SubLineUps[i].LineUpUnits.Take(_maxOfChoice).ToList();
-                                    lineUp.SubLineUps[i].LineUpUnits.Clear();
-                                    lineUp.SubLineUps[i].LineUpUnits.AddRange(newList);
-                                }
-                            }
+                            SortSubLineUp(subLineUp);
                         }
                     }
 
@@ -806,9 +860,103 @@ namespace JinChanChanTool.Services.DataServices
         /// </summary>
         private void OrderCurrentSubLineUp()
         {
-            List<LineUpUnit> newList = GetCurrentSubLineUp().LineUpUnits.OrderBy(unit => _iHeroDataService.GetHeroFromName(unit.HeroName).Cost).ToList();
-            GetCurrentSubLineUp().LineUpUnits.Clear();
-            GetCurrentSubLineUp().LineUpUnits.AddRange(newList);
+            SortSubLineUp(GetCurrentSubLineUp());
+        }
+
+        private void SortSubLineUp(SubLineUp subLineUp)
+        {
+            List<LineUpUnit> newList = subLineUp.LineUpUnits
+                .OrderBy(unit => _iHeroDataService.GetHeroFromName(unit.HeroName).Cost)
+                .ToList();
+            subLineUp.LineUpUnits.Clear();
+            subLineUp.LineUpUnits.AddRange(newList);
+        }
+
+        private static IEnumerable<SubLineUp> GetAllSubLineUps(LineUp lineUp)
+        {
+            foreach (SubLineUp subLineUp in lineUp.SubLineUps)
+            {
+                yield return subLineUp;
+            }
+
+            foreach (FlexBranch flexBranch in lineUp.FlexBranches)
+            {
+                yield return flexBranch.SubLineUp;
+            }
+        }
+
+        private static void NormalizeLineUp(LineUp lineUp)
+        {
+            SubLineUp[] sourceSubLineUps = lineUp.SubLineUps ?? [];
+            lineUp.SubLineUps = new SubLineUp[3];
+            for (int i = 0; i < lineUp.SubLineUps.Length; i++)
+            {
+                lineUp.SubLineUps[i] = i < sourceSubLineUps.Length && sourceSubLineUps[i] != null
+                    ? sourceSubLineUps[i]
+                    : new SubLineUp();
+                NormalizeSubLineUp(lineUp.SubLineUps[i]);
+            }
+
+            lineUp.FlexBranches ??= [];
+            lineUp.FlexBranches = lineUp.FlexBranches.Take(FlexBranch.MaxBranchCount).ToList();
+            for (int i = 0; i < lineUp.FlexBranches.Count; i++)
+            {
+                FlexBranch flexBranch = lineUp.FlexBranches[i] ?? new FlexBranch();
+                flexBranch.Name = NormalizeFlexBranchName(flexBranch.Name);
+                if (string.IsNullOrWhiteSpace(flexBranch.Name))
+                {
+                    flexBranch.Name = $"Flex 分支 {i + 1}";
+                }
+                flexBranch.Description = (flexBranch.Description ?? string.Empty).Trim();
+                if (flexBranch.Description.Length > FlexBranch.MaxDescriptionLength)
+                {
+                    flexBranch.Description = flexBranch.Description[..FlexBranch.MaxDescriptionLength];
+                }
+                flexBranch.SubLineUp ??= new SubLineUp();
+                NormalizeSubLineUp(flexBranch.SubLineUp);
+                lineUp.FlexBranches[i] = flexBranch;
+            }
+        }
+
+        private static void NormalizeSubLineUp(SubLineUp subLineUp)
+        {
+            subLineUp.LineUpUnits ??= [];
+            if (subLineUp.LineUpUnits.Count > MaxLineUpHeroCount)
+            {
+                subLineUp.LineUpUnits = subLineUp.LineUpUnits.Take(MaxLineUpHeroCount).ToList();
+            }
+            foreach (LineUpUnit unit in subLineUp.LineUpUnits)
+            {
+                unit.EquipmentNames ??= ["", "", ""];
+                if (unit.EquipmentNames.Length != 3)
+                {
+                    unit.EquipmentNames = unit.EquipmentNames.Concat(Enumerable.Repeat(string.Empty, 3))
+                        .Take(3)
+                        .ToArray();
+                }
+            }
+        }
+
+        private static SubLineUp CloneSubLineUp(SubLineUp source)
+        {
+            return new SubLineUp
+            {
+                LineUpUnits = source.LineUpUnits.Select(unit => new LineUpUnit
+                {
+                    HeroName = unit.HeroName,
+                    EquipmentNames = unit.EquipmentNames?.ToArray() ?? ["", "", ""],
+                    Position = unit.Position,
+                    PositionLayer = unit.PositionLayer
+                }).ToList()
+            };
+        }
+
+        private static string NormalizeFlexBranchName(string name)
+        {
+            string normalizedName = (name ?? string.Empty).Trim();
+            return normalizedName.Length > FlexBranch.MaxNameLength
+                ? normalizedName[..FlexBranch.MaxNameLength]
+                : normalizedName;
         }
 
         private void NotifyLineUpChanged()

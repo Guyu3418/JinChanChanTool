@@ -917,7 +917,7 @@
             numericUpDown_阵容容量.Name = "numericUpDown_阵容容量";
             numericUpDown_阵容容量.Size = new Size(104, 23);
             numericUpDown_阵容容量.TabIndex = 256;
-            numericUpDown_阵容容量.Value = new decimal(new int[] { 10, 0, 0, 0 });
+            numericUpDown_阵容容量.Value = new decimal(new int[] { 20, 0, 0, 0 });
             //
             // panel_分割线_功能_常规2
             //

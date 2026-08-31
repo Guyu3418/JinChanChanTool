@@ -36,6 +36,7 @@ namespace JinChanChanTool.Forms
             comboBox_阵容选择 = new ComboBox();
             button_阵容推荐 = new Button();
             button_展开收起 = new Button();
+            button_分支 = new Button();
             hexagonBoard = new HexagonBoard();
             benchPanel = new BenchPanel();
             flowLayoutPanel_装备散件展示 = new FlowLayoutPanel();
@@ -49,7 +50,7 @@ namespace JinChanChanTool.Forms
             flowLayoutPanel_阵容展示.Margin = new Padding(0);
             flowLayoutPanel_阵容展示.Name = "flowLayoutPanel1";
             flowLayoutPanel_阵容展示.Padding = new Padding(2);
-            flowLayoutPanel_阵容展示.Size = new Size(426, 64);
+            flowLayoutPanel_阵容展示.Size = new Size(488, 64);
             flowLayoutPanel_阵容展示.TabIndex = 4;
             flowLayoutPanel_阵容展示.WrapContents = false;
             // 
@@ -118,6 +119,20 @@ namespace JinChanChanTool.Forms
             button_展开收起.Text = "站位";
             button_展开收起.UseVisualStyleBackColor = false;
             button_展开收起.Click += button_展开收起_Click;
+            //
+            // button_分支
+            //
+            button_分支.BackColor = Color.FromArgb(45, 45, 48);
+            button_分支.FlatAppearance.BorderColor = Color.Gray;
+            button_分支.FlatStyle = FlatStyle.Flat;
+            button_分支.ForeColor = SystemColors.Control;
+            button_分支.Location = new Point(430, 1);
+            button_分支.Name = "button_分支";
+            button_分支.Size = new Size(60, 25);
+            button_分支.TabIndex = 18;
+            button_分支.Text = "分支";
+            button_分支.UseVisualStyleBackColor = false;
+            button_分支.Click += button_分支_Click;
             // 
             // hexagonBoard
             // 
@@ -152,10 +167,11 @@ namespace JinChanChanTool.Forms
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(1, 1, 1);
-            ClientSize = new Size(430, 95);
+            ClientSize = new Size(492, 95);
             Controls.Add(flowLayoutPanel_装备散件展示);
             Controls.Add(benchPanel);
             Controls.Add(hexagonBoard);
+            Controls.Add(button_分支);
             Controls.Add(button_展开收起);
             Controls.Add(button_阵容推荐);
             Controls.Add(flowLayoutPanel_阵容展示);
@@ -179,6 +195,7 @@ namespace JinChanChanTool.Forms
         private Button button_保存;
         private Button button_阵容推荐;
         private Button button_展开收起;
+        private Button button_分支;
         private HexagonBoard hexagonBoard;
         private BenchPanel benchPanel;
         private FlowLayoutPanel flowLayoutPanel_装备散件展示;

@@ -150,6 +150,12 @@ namespace JinChanChanTool.Services
         /// LineUpForm窗口中的英雄与装备图片框列表
         /// </summary>
         public List<HeroAndEquipmentPictureBox> LineUpForm_HeroAndEquipmentPictureBoxes { get; set; }
+
+        /// <summary>
+        /// 阵容展示区为超出初始容量的英雄创建了新的头像框。
+        /// bool 参数为 true 时代表 F3 阵容窗口。
+        /// </summary>
+        public event Action<HeroAndEquipmentPictureBox, bool> LineUpHeroAndEquipmentPictureBoxCreated;
         #endregion
 
         /// <summary>
@@ -178,7 +184,7 @@ namespace JinChanChanTool.Services
             MainForm_CheckBoxes = new List<CheckBox>();
             MainForm_ProfessionButtons = new List<Button>();
             MainForm_PeculiarityButtons = new List<Button>();
-            MaxHerosCount = maxHeroCount;
+            MaxHerosCount = Math.Clamp(maxHeroCount, 10, 20);
             MainForm_HeroAndEquipmentPictureBoxes = new List<HeroAndEquipmentPictureBox>();
             nameToCheckBoxMap = new Dictionary<string, CheckBox>();
             _tabControl_HeroSelector = tabControl_HeroSelector;
@@ -238,9 +244,8 @@ namespace JinChanChanTool.Services
         private void CalculateDynamicSizes()
         {
             // MainForm阵容展示区计算
-            // 固定列数为5，根据容量计算行数
-            int columns = 5; // MainForm每行5个
-            int rows = (int)Math.Ceiling((double)MaxHerosCount / columns);
+            // 已选英雄区域固定展示两行，其余英雄通过滚动访问。
+            const int visibleRows = 2;
 
             // 组件尺寸（宽48，高67）
             int boxWidth = 48;
@@ -257,7 +262,7 @@ namespace JinChanChanTool.Services
             // 容器高度 = 行数 × 71 + padding 10
             int containerWidth = 384;
             int rowHeight = boxHeight + verticalMargin * 2; // 71
-            int containerHeight = rows * rowHeight + 10;
+            int containerHeight = visibleRows * rowHeight + 10;
 
             mainFormLineUpPanelSize = new Size(Dpi_M(containerWidth), Dpi_M(containerHeight));
 
@@ -284,38 +289,7 @@ namespace JinChanChanTool.Services
                 _lineUpPanelParent.Size = mainFormLineUpPanelParentSize;
             }
 
-            // 调整祖父容器 panel_用户区背景 的高度
-            if (_lineUpPanelGrandParent != null)
-            {
-                int baseRows = 2;
-                int currentRows = (int)Math.Ceiling((double)MaxHerosCount / 5.0);
-                int extraRows = currentRows - baseRows;
-
-                if (extraRows > 0)
-                {
-                    // 原始高度633，每额外一行增加71px
-                    int extraHeight = extraRows * 71;
-                    int newHeight = 633 + extraHeight;
-
-                    _lineUpPanelGrandParent.Size = new Size(Dpi_M(404), Dpi_M(newHeight));
-                }
-            }
-
-            // 调整MainForm窗口高度
-            if (_mainForm != null)
-            {
-                int baseRows = 2;
-                int currentRows = (int)Math.Ceiling((double)MaxHerosCount / 5.0);
-                int extraRows = currentRows - baseRows;
-
-                if (extraRows > 0)
-                {
-                    int heightPerRow = 71;
-                    int extraHeight = extraRows * heightPerRow;
-                    int newHeight = 670 + extraHeight;
-                    _mainForm.ClientSize = new Size(Dpi_M(410), Dpi_M(newHeight));
-                }
-            }
+            _lineUpPanel.AutoScroll = true;
         }
 
         /// <summary>
@@ -401,7 +375,7 @@ namespace JinChanChanTool.Services
             }
 
             // 调整窗口高度
-            LineUpForm.Instance.ClientSize = new Size(Dpi_L(430), Dpi_L(formHeight));
+            LineUpForm.Instance.ClientSize = new Size(Dpi_L(492), Dpi_L(formHeight));
         }
 
         #region 创建主窗口英雄选择器
@@ -870,6 +844,37 @@ namespace JinChanChanTool.Services
             for (int i = 0; i < MaxHerosCount; i++)
             {
                 LineUpForm_HeroAndEquipmentPictureBoxes.Add(CreatLineUpFormHeroAndEquipmentPicturebox(LineUpForm_LineUpPanel));
+            }
+        }
+
+        /// <summary>
+        /// 确保主窗口和 F3 阵容窗口都能显示当前阵容的全部英雄。
+        /// 初始容量仅影响首屏布局，服务层最多允许 20 名英雄。
+        /// </summary>
+        public void EnsureLineUpHeroAndEquipmentPictureBoxCapacity(int requiredCount)
+        {
+            if (requiredCount <= 0)
+            {
+                return;
+            }
+
+            requiredCount = Math.Min(requiredCount, 20);
+
+            _lineUpPanel.AutoScroll = true;
+            LineUpForm_LineUpPanel.AutoScroll = true;
+
+            while (MainForm_HeroAndEquipmentPictureBoxes.Count < requiredCount)
+            {
+                HeroAndEquipmentPictureBox pictureBox = CreatHeroAndEquipmentPicturebox(_lineUpPanel);
+                MainForm_HeroAndEquipmentPictureBoxes.Add(pictureBox);
+                LineUpHeroAndEquipmentPictureBoxCreated?.Invoke(pictureBox, false);
+            }
+
+            while (LineUpForm_HeroAndEquipmentPictureBoxes.Count < requiredCount)
+            {
+                HeroAndEquipmentPictureBox pictureBox = CreatLineUpFormHeroAndEquipmentPicturebox(LineUpForm_LineUpPanel);
+                LineUpForm_HeroAndEquipmentPictureBoxes.Add(pictureBox);
+                LineUpHeroAndEquipmentPictureBoxCreated?.Invoke(pictureBox, true);
             }
         }
         #endregion

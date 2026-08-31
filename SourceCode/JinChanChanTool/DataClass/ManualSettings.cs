@@ -453,7 +453,7 @@
             HighlightGradientSpeed = 0.05f;
             Language = "zh-CN";
             IsAllWindowsTopMost = true;
-            LineUpCapacity = 10;
+            LineUpCapacity = 20;
 
         }
 
